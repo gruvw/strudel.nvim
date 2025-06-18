@@ -61,8 +61,16 @@ function M.launch_strudel()
     local launch_script = plugin_root .. "/launch.js"
     local bufnr = vim.api.nvim_get_current_buf()
     
+    -- Get Neovim's data directory for the plugin
+    local data_dir = vim.fn.stdpath('data') .. '/strudel-nvim'
+    -- Ensure the directory exists
+    vim.fn.mkdir(data_dir, 'p')
+    
     -- Run the Node.js script
     strudel_job_id = vim.fn.jobstart("node " .. vim.fn.shellescape(launch_script), {
+        env = {
+            NVIM_STRUDEL_DATA_DIR = data_dir
+        },
         on_stderr = function(_, data)
             if data then
                 for _, line in ipairs(data) do
@@ -146,6 +154,13 @@ end
 
 -- Setup function
 function M.setup()
+    vim.api.nvim_create_autocmd({ "BufRead", "BufNewFile" }, {
+        pattern = "*.str",
+        callback = function()
+          vim.bo.filetype = "javascript"
+        end,
+      })
+      
     vim.api.nvim_create_user_command("StrudelLaunch", function()
         M.launch_strudel()
     end, {})

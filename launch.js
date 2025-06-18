@@ -1,8 +1,13 @@
 const puppeteer = require('puppeteer');
+const path = require('path');
+const os = require('os');
 
 let page = null;
 let lastContent = null;
 let browser = null;
+
+// Get user data directory path
+const userDataDir = path.join(os.homedir(), '.cache', 'strudel-nvim');
 
 // Function to update editor content
 async function updateEditor(base64Content) {
@@ -75,6 +80,7 @@ process.stdin.on('data', async (data) => {
         browser = await puppeteer.launch({
             headless: false,
             defaultViewport: null,
+            userDataDir: userDataDir,
             args: ['--app=https://strudel.cc/', '--start-maximized'] 
         });
 
@@ -82,6 +88,20 @@ process.stdin.on('data', async (data) => {
         const pages = await browser.pages();
         page = pages[0];
         await page.waitForSelector('.cm-content', { timeout: 10000 }); // Wait for editor to be ready
+
+        // Full screen side navigation bar
+        await page.addStyleTag({
+            content: `
+                nav:not(:has(> button:first-child)) {
+                    position: absolute;
+                    z-index: 99;
+                    height: 100%;
+                    width: 100vw;
+                    max-width: 100vw;
+                    background: linear-gradient(var(--lineHighlight), var(--lineHighlight)), var(--background);
+                }
+            `
+        });
 
         // Listen for the custom event and handle content sync in Node.js context
         await page.exposeFunction('getEditorContent', async () => {
