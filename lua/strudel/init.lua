@@ -2,180 +2,166 @@ local base64 = require("strudel.base64")
 
 local M = {}
 
--- Get the plugin root directory
-local function get_plugin_root()
-    return vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":h:h:h")
-end
+local MESSAGES = {
+  CONTENT = "STRUDEL_CONTENT:",
+  STOP = "STRUDEL_STOP",
+  PLAY_STOP = "STRUDEL_PLAY_STOP",
+  UPDATE = "STRUDEL_UPDATE",
+  READY = "STRUDEL_READY"
+}
 
--- Store the job ID of the Node.js process
+local STRUDEL_SYNC_AUTOCOMMAND = "StrudelSync"
+
+-- State
 local strudel_job_id = nil
+local last_content = nil
 
--- Store the last base64 content we sent to avoid loops
-local last_base64_content = nil
+local function send_message(message)
+  if strudel_job_id then
+    vim.fn.chansend(strudel_job_id, message .. "\n")
+  else
+    vim.notify("No active Strudel session", vim.log.levels.WARN)
+  end
+end
 
--- Function to sync buffer content
-local function sync_buffer_content(bufnr)
-    if strudel_job_id then
-        local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
-        local content = table.concat(lines, "\n")
-        -- Encode content as base64
-        local base64_content = base64.encode(content)
-        -- Only send if base64 content has changed
-        if base64_content ~= last_base64_content then
-            last_base64_content = base64_content
-            vim.fn.chansend(strudel_job_id, "STRUDEL_CONTENT:" .. base64_content .. "\n")
-        end
+local function send_buffer_content(bufnr)
+  if not strudel_job_id then
+    return
+  end
+
+  local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+  local content = table.concat(lines, "\n")
+  local base64_content = base64.encode(content)
+
+  if base64_content ~= last_content then
+    last_content = base64_content
+    send_message(MESSAGES.CONTENT .. base64_content)
+  end
+end
+
+local function update_buffer_content(bufnr, content)
+  local lines = {}
+  if content ~= "" then
+    lines = vim.split(content, "\n")
+  end
+
+  vim.schedule(function()
+    if not vim.api.nvim_buf_is_valid(bufnr) then
+      return
     end
+
+    -- save current window view
+    local view = vim.fn.winsaveview()
+
+    -- Update buffer content
+    vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
+
+    -- Restore window view
+    vim.fn.winrestview(view)
+  end)
 end
 
--- Function to update buffer from Strudel
-local function update_buffer_from_strudel(bufnr, base64_content)
-        -- Decode base64 content
-        local content = base64.decode(base64_content)
-        -- Split content into lines, handling empty string case
-        local lines = {}
-        if content ~= "" then
-            lines = vim.split(content, "\n")
-        end
-        
-        -- Schedule the buffer update to avoid "E565: Not allowed here"
-        vim.schedule(function()
-            -- Ensure the buffer still exists
-            if vim.api.nvim_buf_is_valid(bufnr) then
-                -- Get the current window view
-                local win = vim.fn.winnr()
-                local view = vim.fn.winsaveview()
-                
-                -- Update buffer content
-                vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
-                
-                -- Restore window view
-                vim.fn.winrestview(view)
-            end
-        end)
-end
-
--- Function to launch Strudel
+-- Public API
 function M.launch_strudel()
-    local plugin_root = get_plugin_root()
-    local launch_script = plugin_root .. "/launch.js"
-    local bufnr = vim.api.nvim_get_current_buf()
-    
-    -- Get Neovim's data directory for the plugin
-    local data_dir = vim.fn.stdpath('data') .. '/strudel-nvim'
-    -- Ensure the directory exists
-    vim.fn.mkdir(data_dir, 'p')
-    
-    -- Run the Node.js script
-    strudel_job_id = vim.fn.jobstart("node " .. vim.fn.shellescape(launch_script), {
-        env = {
-            NVIM_STRUDEL_DATA_DIR = data_dir
-        },
-        on_stderr = function(_, data)
-            if data then
-                for _, line in ipairs(data) do
-                    if line ~= "" then
-                        vim.notify("Strudel Error: " .. line, vim.log.levels.ERROR)
-                    end
-                end
-            end
-        end,
-        on_stdout = function(_, data)
-            if data then
-                -- Join all data lines to handle multiline content
-                local full_data = table.concat(data, "\n")
-                
-                if full_data:match("^STRUDEL_READY") then
-                    -- Send initial buffer content once Strudel signals it's ready
-                    sync_buffer_content(bufnr)
-                elseif full_data:match("^STRUDEL_CONTENT:") then
-                    -- Extract base64 content after the prefix
-                    if (base64_content ~= last_base64_content) then
-                        last_base64_content = base64_content
-                        local base64_content = full_data:sub(#"STRUDEL_CONTENT:" + 1)
-                        update_buffer_from_strudel(bufnr, base64_content)
-                    end
-                end
-            end
-        end,
-        on_exit = function(_, code)
-            if code == 0 then
-                vim.notify("Strudel session closed", vim.log.levels.INFO)
-            else
-                vim.notify("Strudel window error: " .. code, vim.log.levels.ERROR)
-                vim.notify("Strudel window error: " .. code, vim.log.levels.ERROR)
-            end
-            strudel_job_id = nil
-            last_base64_content = nil
-            vim.api.nvim_clear_autocmds({ group = "StrudelSync" })
-        end,
-    })
+  if strudel_job_id ~= nil then
+    vim.notify("Strudel is already running, run :StrudelExit to quit.", vim.log.levels.ERROR)
+    return
+  end
 
-    -- Create an autocommand group for Strudel sync
-    vim.api.nvim_create_augroup("StrudelSync", { clear = true })
-    
-    -- Set up autocommand to sync buffer changes
-    vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, {
-        group = "StrudelSync",
-        buffer = bufnr,
-        callback = function()
-            sync_buffer_content(bufnr)
-        end,
-    })
+  local plugin_root = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":h:h:h")
+  local launch_script = plugin_root .. "/js/launch.js"
+  local bufnr = vim.api.nvim_get_current_buf()
+
+  -- Run the js script
+  strudel_job_id = vim.fn.jobstart("node " .. vim.fn.shellescape(launch_script), {
+    on_stderr = function(_, data)
+      if not data then
+        return
+      end
+
+      for _, line in ipairs(data) do
+        if line ~= "" then
+          vim.notify("Strudel Error: " .. line, vim.log.levels.ERROR)
+        end
+      end
+    end,
+    on_stdout = function(_, data)
+      if not data then
+        return
+      end
+
+      local full_data = table.concat(data, "\n")
+      if full_data == "" then
+        return
+      end
+
+      if full_data:match("^" .. MESSAGES.READY) then
+        -- Send initial buffer content once Strudel is ready
+        send_buffer_content(bufnr)
+      elseif full_data:match("^" .. MESSAGES.CONTENT) then
+        local base64_content = full_data:sub(#MESSAGES.CONTENT + 1)
+        if base64_content == last_content then
+          return
+        end
+
+        last_content = base64_content
+
+        local content = base64.decode(base64_content)
+        update_buffer_content(bufnr, content)
+      end
+    end,
+    on_exit = function(_, code)
+      if code == 0 then
+        vim.notify("Strudel session closed", vim.log.levels.INFO)
+      else
+        vim.notify("Strudel process error: " .. code, vim.log.levels.ERROR)
+      end
+
+      -- reset state
+      strudel_job_id = nil
+      last_content = nil
+      vim.api.nvim_clear_autocmds({ group = STRUDEL_SYNC_AUTOCOMMAND })
+    end,
+  })
+
+  vim.api.nvim_create_augroup(STRUDEL_SYNC_AUTOCOMMAND, { clear = true })
+
+  -- Set up autocommand to sync buffer changes
+  vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, {
+    group = STRUDEL_SYNC_AUTOCOMMAND,
+    buffer = bufnr,
+    callback = function()
+      send_buffer_content(bufnr)
+    end,
+  })
 end
 
--- Function to exit Strudel
 function M.exit_strudel()
-    if strudel_job_id then
-        -- Send stop message to Node.js process
-        vim.fn.chansend(strudel_job_id, "STRUDEL_STOP\n")
-    else
-        vim.notify("No active Strudel session", vim.log.levels.WARN)
-    end
+  send_message(MESSAGES.STOP)
 end
 
--- Function to toggle play/stop
 function M.play_stop()
-    if strudel_job_id then
-        vim.fn.chansend(strudel_job_id, "STRUDEL_PLAY_STOP\n")
-    else
-        vim.notify("No active Strudel session", vim.log.levels.WARN)
-    end
+  send_message(MESSAGES.PLAY_STOP)
 end
 
--- Function to trigger update
 function M.update()
-    if strudel_job_id then
-        vim.fn.chansend(strudel_job_id, "STRUDEL_UPDATE\n")
-    else
-        vim.notify("No active Strudel session", vim.log.levels.WARN)
-    end
+  send_message(MESSAGES.UPDATE)
 end
 
--- Setup function
 function M.setup()
-    vim.api.nvim_create_autocmd({ "BufRead", "BufNewFile" }, {
-        pattern = "*.str",
-        callback = function()
-          vim.bo.filetype = "javascript"
-        end,
-      })
-      
-    vim.api.nvim_create_user_command("StrudelLaunch", function()
-        M.launch_strudel()
-    end, {})
-    
-    vim.api.nvim_create_user_command("StrudelExit", function()
-        M.exit_strudel()
-    end, {})
+  -- Set filetype for .str files to javascript
+  vim.api.nvim_create_autocmd({ "BufRead", "BufNewFile" }, {
+    pattern = "*.str",
+    callback = function()
+      vim.bo.filetype = "javascript"
+    end,
+  })
 
-    vim.api.nvim_create_user_command("StrudelPlayStop", function()
-        M.play_stop()
-    end, {})
-
-    vim.api.nvim_create_user_command("StrudelUpdate", function()
-        M.update()
-    end, {})
+  -- Commands
+  vim.api.nvim_create_user_command("StrudelLaunch", M.launch_strudel, {})
+  vim.api.nvim_create_user_command("StrudelExit", M.exit_strudel, {})
+  vim.api.nvim_create_user_command("StrudelPlayStop", M.play_stop, {})
+  vim.api.nvim_create_user_command("StrudelUpdate", M.update, {})
 end
 
-return M 
+return M

@@ -1,18 +1,14 @@
 {
   "name": "strudel.nvim",
   "version": "1.0.0",
-  "description": "Neovim plugin to launch Strudel website",
-  "main": "launch.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
+  "description": "Launch and control Strudel from Neovim",
+  "main": "js/launch.js",
   "keywords": [
     "neovim",
     "strudel",
     "plugin"
   ],
   "author": "gruvw",
-  "license": "MIT",
   "dependencies": {
     "puppeteer": "^22.4.1"
   }
