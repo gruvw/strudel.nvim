@@ -22,7 +22,7 @@ const EVENTS = {
 };
 
 // Additional styles
-const STYLES = `
+const MENU_PANEL_MAX_STYLE = `
     nav:not(:has(> button:first-child)) {
         position: absolute;
         z-index: 99;
@@ -38,16 +38,29 @@ let page = null;
 let lastContent = null;
 let browser = null;
 
-// User data directory path for browser data persistence
+// User configuration
 const USER_DATA_DIR_ARG = "--user-data-dir=";
 let userDataDir = null;
+let maximiseMenuPanel = true;
+const CUSTOM_CSS_ARG = "--custom-css-b64=";
+let customCss = null;
 for (const arg of process.argv) {
     if (arg.startsWith(USER_DATA_DIR_ARG)) {
         userDataDir = arg.replace(USER_DATA_DIR_ARG, "");
-        break;
+    }
+    if (arg === "--no-maximise-menu-panel") {
+        maximiseMenuPanel = false;
+    }
+    if (arg.startsWith(CUSTOM_CSS_ARG)) {
+        const b64 = arg.slice(CUSTOM_CSS_ARG.length);
+        try {
+            customCss = Buffer.from(b64, "base64").toString("utf8");
+        } catch (e) {
+            console.error("Failed to decode custom CSS:", e);
+        }
     }
 }
-if (userDataDir === null) {
+if (!userDataDir) {
     userDataDir = path.join(os.homedir(), ".cache", "strudel-nvim");
 }
 
@@ -111,7 +124,7 @@ process.stdin.on("data", async (data) => {
             headless: false,
             defaultViewport: null,
             userDataDir: userDataDir,
-            args: [`--app=${STRUDEL_URL}`, "--start-maximized"]
+            args: [`--app=${STRUDEL_URL}`],
         });
 
         // Wait for the page to be ready (found the editor)
@@ -128,7 +141,12 @@ process.stdin.on("data", async (data) => {
         });
 
         // Register additional styles
-        await page.addStyleTag({ content: STYLES });
+        if (maximiseMenuPanel) {
+            await page.addStyleTag({ content: MENU_PANEL_MAX_STYLE });
+        }
+        if (customCss) {
+            await page.addStyleTag({ content: customCss });
+        }
 
         // Handle content sync
         await page.exposeFunction("sendEditorContent", async () => {

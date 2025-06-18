@@ -14,6 +14,8 @@ local STRUDEL_SYNC_AUTOCOMMAND = "StrudelSync"
 
 -- Config
 local user_browser_data_dir = nil
+local maximise_menu_panel = true
+local custom_css_b64 = nil
 
 -- State
 local strudel_job_id = nil
@@ -68,19 +70,38 @@ local function set_buffer_content(bufnr, content)
   end)
 end
 
+local function send_cursor_position()
+  if not strudel_job_id or not strudel_synced_bufnr or not strudel_ready then
+    return
+  end
+  if not vim.api.nvim_buf_is_valid(strudel_synced_bufnr) then
+    return
+  end
+  local pos = vim.api.nvim_win_get_cursor(0) -- {line, col}
+  local line = pos[1]
+  local col = pos[2]
+  send_message(string.format("STRUDEL_CURSOR:%d:%d", line, col))
+end
+
 -- Public API
 function M.start()
   if strudel_job_id ~= nil then
-    vim.notify("Strudel is already running, run :StrudelExit to quit.", vim.log.levels.ERROR)
+    vim.notify("Strudel is already running, run :StrudelQuit to quit.", vim.log.levels.ERROR)
     return
   end
 
   local plugin_root = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":h:h:h")
   local launch_script = plugin_root .. "/js/launch.js"
   local cmd = "node " .. vim.fn.shellescape(launch_script)
-  
+
   if user_browser_data_dir then
     cmd = cmd .. " --user-data-dir=" .. vim.fn.shellescape(user_browser_data_dir)
+  end
+  if not maximise_menu_panel then
+    cmd = cmd .. " --no-maximise-menu-panel"
+  end
+  if custom_css_b64 then
+    cmd = cmd .. " --custom-css-b64=" .. vim.fn.shellescape(custom_css_b64)
   end
 
   -- Run the js script
@@ -184,6 +205,15 @@ function M.set_buffer(opts)
     end,
   })
 
+  -- Set up autocommand to sync cursor position
+  vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
+    group = STRUDEL_SYNC_AUTOCOMMAND,
+    buffer = bufnr,
+    callback = function()
+      send_cursor_position()
+    end,
+  })
+
   local buffer_name = vim.fn.bufname(bufnr)
   if buffer_name == "" then
     buffer_name = "#" .. bufnr
@@ -194,6 +224,20 @@ end
 function M.setup(opts)
   opts = opts or {}
   user_browser_data_dir = opts.browser_data_dir
+  if opts.maximise_menu_panel ~= nil then
+    maximise_menu_panel = opts.maximise_menu_panel
+  end
+  if opts.custom_css_file then
+    local css_path = opts.custom_css_file
+    local f = io.open(css_path, "rb")
+    if f then
+      local css = f:read("*a")
+      f:close()
+      custom_css_b64 = base64.encode(css)
+    else
+      vim.notify("Could not read custom CSS file: " .. css_path, vim.log.levels.ERROR)
+    end
+  end
 
   -- Create autocmd group
   vim.api.nvim_create_augroup(STRUDEL_SYNC_AUTOCOMMAND, { clear = true })
