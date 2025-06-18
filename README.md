@@ -15,8 +15,7 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
 {
     "gruvw/strudel.nvim",
     config = function()
-            local strudel = require("strudel")
-            strudel.setup()
+            require("strudel").setup()
     end,
     build = "npm install"
 }
