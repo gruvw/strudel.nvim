@@ -14,7 +14,10 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
 ```lua
 {
     "gruvw/strudel.nvim",
-    cmd = "StrudelLaunch",
+    config = function()
+            local strudel = require("strudel")
+            strudel.setup()
+    end,
     build = "npm install"
 }
 ```
