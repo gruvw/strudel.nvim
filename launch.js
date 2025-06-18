@@ -2,6 +2,7 @@ const puppeteer = require('puppeteer');
 
 let page = null;
 let lastContent = null;
+let browser = null;
 
 // Function to update editor content
 async function updateEditor(base64Content) {
@@ -25,10 +26,10 @@ async function updateEditor(base64Content) {
                 });
                 
                 // Trigger input event to ensure Strudel processes the changes
-                // editor.dispatchEvent(new InputEvent('input', {
-                //     bubbles: true,
-                //     cancelable: true,
-                // }));
+                editor.dispatchEvent(new InputEvent('input', {
+                    bubbles: true,
+                    cancelable: true,
+                }));
             }
         }, content);
     } catch (error) {
@@ -38,13 +39,22 @@ async function updateEditor(base64Content) {
 
 // Handle input from stdin (from Neovim)
 process.stdin.on('data', async (data) => {
-    const base64Content = data.toString().trim();
-    await updateEditor(base64Content);
+    const message = data.toString().trim();
+    
+    if (message === 'STRUDEL_STOP') {
+        if (browser) {
+            await browser.close();
+            process.exit(0);
+        }
+    } else if (message.startsWith('STRUDEL_CONTENT:')) {
+        const base64Content = message.slice('STRUDEL_CONTENT:'.length);
+        await updateEditor(base64Content);
+    }
 });
 
 (async () => {
     try {
-        const browser = await puppeteer.launch({
+        browser = await puppeteer.launch({
             headless: false,
             defaultViewport: null,
             args: ['--app=https://strudel.cc/', '--start-maximized'] 

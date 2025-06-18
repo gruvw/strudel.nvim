@@ -23,7 +23,7 @@ local function sync_buffer_content(bufnr)
         -- Only send if base64 content has changed
         if base64_content ~= last_base64_content then
             last_base64_content = base64_content
-            vim.fn.chansend(strudel_job_id, base64_content .. "\n")
+            vim.fn.chansend(strudel_job_id, "STRUDEL_CONTENT:" .. base64_content .. "\n")
         end
     end
 end
@@ -91,12 +91,14 @@ function M.launch_strudel()
             end
         end,
         on_exit = function(_, code)
-            if code ~= 0 then
-                vim.notify("Failed to launch Strudel", vim.log.levels.ERROR)
+            if code == 0 then
+                vim.notify("Strudel session closed", vim.log.levels.INFO)
+            else
+                vim.notify("Strudel window error: " .. code, vim.log.levels.ERROR)
+                vim.notify("Strudel window error: " .. code, vim.log.levels.ERROR)
             end
-            -- Clear the job ID when the process exits
             strudel_job_id = nil
-            -- Remove the autocommand when Strudel closes
+            last_base64_content = nil
             vim.api.nvim_clear_autocmds({ group = "StrudelSync" })
         end,
     })
@@ -114,10 +116,24 @@ function M.launch_strudel()
     })
 end
 
+-- Function to exit Strudel
+function M.exit_strudel()
+    if strudel_job_id then
+        -- Send stop message to Node.js process
+        vim.fn.chansend(strudel_job_id, "STRUDEL_STOP\n")
+    else
+        vim.notify("No active Strudel session", vim.log.levels.WARN)
+    end
+end
+
 -- Setup function
 function M.setup()
     vim.api.nvim_create_user_command("StrudelLaunch", function()
         M.launch_strudel()
+    end, {})
+    
+    vim.api.nvim_create_user_command("StrudelExit", function()
+        M.exit_strudel()
     end, {})
 end
 
