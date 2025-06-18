@@ -46,6 +46,24 @@ process.stdin.on('data', async (data) => {
             await browser.close();
             process.exit(0);
         }
+    } else if (message === 'STRUDEL_PLAY_STOP') {
+        if (page) {
+            await page.evaluate(() => {
+                const playButton = document.querySelector('header button:nth-child(1)');
+                if (playButton) {
+                    playButton.click();
+                }
+            });
+        }
+    } else if (message === 'STRUDEL_UPDATE') {
+        if (page) {
+            await page.evaluate(() => {
+                const updateButton = document.querySelector('header button:nth-child(2)');
+                if (updateButton) {
+                    updateButton.click();
+                }
+            });
+        }
     } else if (message.startsWith('STRUDEL_CONTENT:')) {
         const base64Content = message.slice('STRUDEL_CONTENT:'.length);
         await updateEditor(base64Content);

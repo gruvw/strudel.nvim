@@ -126,6 +126,24 @@ function M.exit_strudel()
     end
 end
 
+-- Function to toggle play/stop
+function M.play_stop()
+    if strudel_job_id then
+        vim.fn.chansend(strudel_job_id, "STRUDEL_PLAY_STOP\n")
+    else
+        vim.notify("No active Strudel session", vim.log.levels.WARN)
+    end
+end
+
+-- Function to trigger update
+function M.update()
+    if strudel_job_id then
+        vim.fn.chansend(strudel_job_id, "STRUDEL_UPDATE\n")
+    else
+        vim.notify("No active Strudel session", vim.log.levels.WARN)
+    end
+end
+
 -- Setup function
 function M.setup()
     vim.api.nvim_create_user_command("StrudelLaunch", function()
@@ -134,6 +152,14 @@ function M.setup()
     
     vim.api.nvim_create_user_command("StrudelExit", function()
         M.exit_strudel()
+    end, {})
+
+    vim.api.nvim_create_user_command("StrudelPlayStop", function()
+        M.play_stop()
+    end, {})
+
+    vim.api.nvim_create_user_command("StrudelUpdate", function()
+        M.update()
     end, {})
 end
 
