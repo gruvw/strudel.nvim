@@ -1,14 +1,16 @@
 const puppeteer = require('puppeteer');
 
 let page = null;
-let lastNeovimContent = null;
+let lastContent = null;
 
 // Function to update editor content
 async function updateEditor(base64Content) {
     if (!page) return;
+
+    if (base64Content === lastContent) return;
+    lastContent = base64Content;
     
     try {
-        lastNeovimContent = base64Content; // Store base64 content coming from Neovim
         const content = Buffer.from(base64Content, 'base64').toString('utf8');
         await page.evaluate((text) => {
             const editor = document.querySelector('.cm-content');
@@ -53,40 +55,39 @@ process.stdin.on('data', async (data) => {
         page = pages[0];
         await page.waitForSelector('.cm-content', { timeout: 10000 }); // Wait for editor to be ready
 
-        // Set up mutation observer for the editor
+        // Listen for the custom event and handle content sync in Node.js context
+        await page.exposeFunction('getEditorContent', async () => {
+          const content = await page.evaluate(() => {
+              const editor = document.querySelector('.cm-content');
+              if (editor) {
+                  return Array.from(editor.children)
+                      .map(child => child.textContent)
+                      .join('\n');
+              }
+              return '';
+          });
+          const base64Content = Buffer.from(content).toString('base64');
+          if (base64Content !== lastContent) {
+            lastContent = base64Content;
+            process.stdout.write('STRUDEL_CONTENT:' + base64Content + '\n');
+          }
+      });
+
+        // Enable DOM mutation monitoring
         await page.evaluate(() => {
+            // Just set up a basic mutation observer that triggers a custom event
             const editor = document.querySelector('.cm-content');
             if (editor) {
                 const observer = new MutationObserver(() => {
-                    // Get the current content
-                    const content = Array.from(editor.children)
-                        .map(child => child.textContent)
-                        .join('\n');
-                    
-                    // Encode content as base64 and send via console
-                    const base64Content = btoa(unescape(encodeURIComponent(content)));
-                    console.log('STRUDEL_CONTENT:' + base64Content);
+                    editor.dispatchEvent(new CustomEvent('strudel-content-changed'));
                 });
-
-                // Observe changes in the editor
                 observer.observe(editor, {
                     childList: true,
                     characterData: true,
                     subtree: true
                 });
             }
-        });
-
-        // Handle console messages from the page
-        page.on('console', async (msg) => {
-            const text = msg.text();
-            if (text.startsWith('STRUDEL_CONTENT:')) {
-                const base64Content = text.slice('STRUDEL_CONTENT:'.length);
-                // Only send if base64 content is different from what Neovim sent
-                if (base64Content !== lastNeovimContent) {
-                    process.stdout.write('STRUDEL_CONTENT:' + base64Content + '\n');
-                }
-            }
+            document.querySelector('.cm-content').addEventListener('strudel-content-changed', window.getEditorContent);
         });
         
         // Signal that we're ready to receive content

@@ -7,7 +7,6 @@ local function get_plugin_root()
     return vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":h:h:h")
 end
 
-
 -- Store the job ID of the Node.js process
 local strudel_job_id = nil
 
@@ -31,16 +30,11 @@ end
 
 -- Function to update buffer from Strudel
 local function update_buffer_from_strudel(bufnr, base64_content)
-    -- Only update if base64 content has changed
-    if base64_content ~= last_base64_content then
-        last_base64_content = base64_content
         -- Decode base64 content
         local content = base64.decode(base64_content)
         -- Split content into lines, handling empty string case
         local lines = {}
         if content ~= "" then
-            -- Remove any trailing newline before splitting
-            content = content:gsub("\n$", "")
             lines = vim.split(content, "\n")
         end
         
@@ -59,7 +53,6 @@ local function update_buffer_from_strudel(bufnr, base64_content)
                 vim.fn.winrestview(view)
             end
         end)
-    end
 end
 
 -- Function to launch Strudel
@@ -89,8 +82,11 @@ function M.launch_strudel()
                     sync_buffer_content(bufnr)
                 elseif full_data:match("^STRUDEL_CONTENT:") then
                     -- Extract base64 content after the prefix
-                    local base64_content = full_data:sub(#"STRUDEL_CONTENT:" + 1)
-                    update_buffer_from_strudel(bufnr, base64_content)
+                    if (base64_content ~= last_base64_content) then
+                        last_base64_content = base64_content
+                        local base64_content = full_data:sub(#"STRUDEL_CONTENT:" + 1)
+                        update_buffer_from_strudel(bufnr, base64_content)
+                    end
                 end
             end
         end,
