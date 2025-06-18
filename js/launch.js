@@ -3,6 +3,7 @@ const path = require("path");
 const os = require("os");
 
 const STRUDEL_URL = "https://strudel.cc/";
+
 const MESSAGES = {
     CONTENT: "STRUDEL_CONTENT:",
     STOP: "STRUDEL_STOP",
@@ -12,11 +13,8 @@ const MESSAGES = {
 };
 
 const SELECTORS = {
-    EDITOR: ".cm-content",
-    PLAY_BUTTON: "header button:nth-child(1)",
-    UPDATE_BUTTON: "header button:nth-child(2)"
+    EDITOR: ".cm-content"
 };
-
 const EVENTS = {
     CONTENT_CHANGED: "strudel-content-changed"
 };
@@ -64,20 +62,13 @@ if (!userDataDir) {
     userDataDir = path.join(os.homedir(), ".cache", "strudel-nvim");
 }
 
-const clickButton = async (selector) => {
-    if (!page) return;
-    await page.evaluate((sel) => {
-        const button = document.querySelector(sel);
-        if (button) button.click();
-    }, selector);
-};
-
 async function updateEditorContent(content) {
     if (!page) return;
 
     try {
-        await page.evaluate((content) => {
-            window.strudelMirror.setCode(content);
+        await page.evaluate(async (content) => {
+            await window.strudelMirror.setCode(content);
+            window.strudelMirror.root.click();
         }, content);
     } catch (error) {
         console.error("Error updating editor:", error);
@@ -94,9 +85,15 @@ process.stdin.on("data", async (data) => {
             process.exit(0);
         }
     } else if (message === MESSAGES.PLAY_STOP) {
-        await clickButton(SELECTORS.PLAY_BUTTON);
+        await page.evaluate(async () => {
+            await window.strudelMirror.toggle();
+            window.strudelMirror.root.click();
+        });
     } else if (message === MESSAGES.UPDATE) {
-        await clickButton(SELECTORS.UPDATE_BUTTON);
+        await page.evaluate(async () => {
+            await window.strudelMirror.evaluate();
+            window.strudelMirror.root.click();
+        });
     } else if (message.startsWith(MESSAGES.CONTENT)) {
         const base64Content = message.slice(MESSAGES.CONTENT.length);
         if (base64Content === lastContent) return;
