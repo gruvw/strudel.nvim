@@ -39,7 +39,17 @@ let lastContent = null;
 let browser = null;
 
 // User data directory path for browser data persistence
-const userDataDir = path.join(os.homedir(), ".cache", "strudel-nvim");
+const USER_DATA_DIR_ARG = "--user-data-dir=";
+let userDataDir = null;
+for (const arg of process.argv) {
+    if (arg.startsWith(USER_DATA_DIR_ARG)) {
+        userDataDir = arg.replace(USER_DATA_DIR_ARG, "");
+        break;
+    }
+}
+if (userDataDir === null) {
+    userDataDir = path.join(os.homedir(), ".cache", "strudel-nvim");
+}
 
 const clickButton = async (selector) => {
     if (!page) return;

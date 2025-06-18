@@ -12,6 +12,9 @@ local MESSAGES = {
 
 local STRUDEL_SYNC_AUTOCOMMAND = "StrudelSync"
 
+-- Config
+local user_browser_data_dir = nil
+
 -- State
 local strudel_job_id = nil
 local last_content = nil
@@ -66,7 +69,7 @@ local function set_buffer_content(bufnr, content)
 end
 
 -- Public API
-function M.launch_strudel()
+function M.start()
   if strudel_job_id ~= nil then
     vim.notify("Strudel is already running, run :StrudelExit to quit.", vim.log.levels.ERROR)
     return
@@ -74,9 +77,14 @@ function M.launch_strudel()
 
   local plugin_root = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":h:h:h")
   local launch_script = plugin_root .. "/js/launch.js"
+  local cmd = "node " .. vim.fn.shellescape(launch_script)
+  
+  if user_browser_data_dir then
+    cmd = cmd .. " --user-data-dir=" .. vim.fn.shellescape(user_browser_data_dir)
+  end
 
   -- Run the js script
-  strudel_job_id = vim.fn.jobstart("node " .. vim.fn.shellescape(launch_script), {
+  strudel_job_id = vim.fn.jobstart(cmd, {
     on_stderr = function(_, data)
       if not data then
         return
@@ -136,7 +144,7 @@ function M.launch_strudel()
   M.set_buffer()
 end
 
-function M.exit_strudel()
+function M.quit()
   send_message(MESSAGES.STOP)
 end
 
@@ -183,11 +191,14 @@ function M.set_buffer(opts)
   vim.notify("Strudel is now syncing buffer " .. buffer_name, vim.log.levels.INFO)
 end
 
-function M.setup()
+function M.setup(opts)
+  opts = opts or {}
+  user_browser_data_dir = opts.browser_data_dir
+
   -- Create autocmd group
   vim.api.nvim_create_augroup(STRUDEL_SYNC_AUTOCOMMAND, { clear = true })
 
-  -- Set filetype for .str files to javascript
+  -- Set file type for .str files to JavaScript
   vim.api.nvim_create_autocmd({ "BufRead", "BufNewFile" }, {
     pattern = "*.str",
     callback = function()
@@ -196,8 +207,8 @@ function M.setup()
   })
 
   -- Commands
-  vim.api.nvim_create_user_command("StrudelLaunch", M.launch_strudel, {})
-  vim.api.nvim_create_user_command("StrudelExit", M.exit_strudel, {})
+  vim.api.nvim_create_user_command("StrudelStart", M.start, {})
+  vim.api.nvim_create_user_command("StrudelQuit", M.quit, {})
   vim.api.nvim_create_user_command("StrudelPlayStop", M.play_stop, {})
   vim.api.nvim_create_user_command("StrudelUpdate", M.update, {})
   vim.api.nvim_create_user_command("StrudelSetBuffer", M.set_buffer, { nargs = "?" })
