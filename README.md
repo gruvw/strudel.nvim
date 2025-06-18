@@ -5,7 +5,7 @@ A Neovim plugin that integrates with [Strudel](https://strudel.cc/), a live codi
 This plugin launches Strudel in a browser window and provides real-time two-way synchronization between a selected Neovim buffer and the Strudel editor as well as remote Strudel controls (play/stop, update).
 
 <p align="center">
-  <img width="500" src="./docs/images/demo.png">
+  <img width="600" src="./docs/images/demo.png">
 </p>
 
 **🎉 Happy live coding & algorave! 🎵**

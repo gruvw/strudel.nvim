@@ -76,18 +76,9 @@ async function updateEditorContent(content) {
     if (!page) return;
 
     try {
-        await page.evaluate((text, editorSelector) => {
-            const editor = document.querySelector(editorSelector);
-            if (editor) {
-                editor.textContent = "";
-                const lines = text.split("\n");
-                lines.forEach(line => {
-                    const div = document.createElement("div");
-                    div.textContent = line;
-                    editor.appendChild(div);
-                });
-            }
-        }, content, SELECTORS.EDITOR);
+        await page.evaluate((content) => {
+            window.strudelMirror.setCode(content);
+        }, content);
     } catch (error) {
         console.error("Error updating editor:", error);
     }
@@ -150,15 +141,9 @@ process.stdin.on("data", async (data) => {
 
         // Handle content sync
         await page.exposeFunction("sendEditorContent", async () => {
-            const content = await page.evaluate((sel) => {
-                const editor = document.querySelector(sel);
-                if (editor) {
-                    return Array.from(editor.children)
-                        .map(child => child.textContent)
-                        .join("\n");
-                }
-                return "";
-            }, SELECTORS.EDITOR);
+            const content = await page.evaluate(() => {
+                return window.strudelMirror.code;
+            });
 
             const base64Content = Buffer.from(content).toString("base64");
 
