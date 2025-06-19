@@ -39,12 +39,15 @@ With [lazy.nvim](https://github.com/folke/lazy.nvim)
 ```lua
 {
   "gruvw/strudel.nvim",
+  cmd = "StrudelStart",
   build = "npm install",
   config = function()
     require("strudel").setup()
   end,
 }
 ```
+
+Note - You have to call the `.setup()` function before using the plugin.
 
 ## Usage
 
@@ -75,8 +78,6 @@ require("strudel").setup({
   update_on_save = false,
 })
 ```
-
-Note - You have to call the `.setup()` function before using the plugin.
 
 ### Commands
 
