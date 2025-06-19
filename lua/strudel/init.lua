@@ -18,6 +18,9 @@ local user_browser_data_dir = nil
 local maximise_menu_panel = true
 local custom_css_b64 = nil
 local update_on_save = false
+local hide_top_bar = true
+local hide_menu_panel = false
+local hide_code_editor = false
 
 -- State
 local strudel_job_id = nil
@@ -110,6 +113,15 @@ function M.start()
   end
   if not maximise_menu_panel then
     cmd = cmd .. " --no-maximise-menu-panel"
+  end
+  if not hide_top_bar then
+    cmd = cmd .. " --no-hide-top-bar"
+  end
+  if hide_menu_panel then
+    cmd = cmd .. " --hide-menu-panel"
+  end
+  if hide_code_editor then
+    cmd = cmd .. " --hide-code-editor"
   end
   if custom_css_b64 then
     cmd = cmd .. " --custom-css-b64=" .. vim.fn.shellescape(custom_css_b64)
@@ -249,6 +261,15 @@ function M.setup(opts)
   user_browser_data_dir = opts.browser_data_dir
   if opts.maximise_menu_panel ~= nil then
     maximise_menu_panel = opts.maximise_menu_panel
+  end
+  if opts.hide_top_bar ~= nil then
+    hide_top_bar = opts.hide_top_bar
+  end
+  if opts.hide_menu_panel ~= nil then
+    hide_menu_panel = opts.hide_menu_panel
+  end
+  if opts.hide_code_editor ~= nil then
+    hide_code_editor = opts.hide_code_editor
   end
   if opts.custom_css_file then
     local css_path = opts.custom_css_file

@@ -14,6 +14,12 @@
 - [X] Send custom CSS file to the Strudel page (from Lua plugin config)
 - [X] Support Strudel inline visualizations (currently clears them on content sync), change the update editor content system
 - [X] Optionally auto trigger update command when saving the buffer
+- [X] Hide Strudel top bar (by default)
+- [X] Hide menu panel behind a config flag
+- [X] Hide browser editor scrollbar
+- [X] Hide code editor behind a config flag
+- [ ] Mute browser audio command
+- [ ] Send Strudel errors back to neovim
 - [ ] Two way sync cursor position between Neovim and Strudel editor
 - [ ] Headless mode (no opened web browser, pure Neovim)
 - [ ] Chose and set an open-source license for the project

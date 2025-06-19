@@ -21,15 +21,35 @@ const EVENTS = {
 };
 
 // Additional styles
-const MENU_PANEL_MAX_STYLE = `
-    nav:not(:has(> button:first-child)) {
-        position: absolute;
-        z-index: 99;
-        height: 100%;
-        width: 100vw;
-        max-width: 100vw;
-        background: linear-gradient(var(--lineHighlight), var(--lineHighlight)), var(--background);
-    }
+const MAX_MENU_PANEL_STYLES = `
+nav:not(:has(> button:first-child)) {
+    position: absolute;
+    z-index: 99;
+    height: 100%;
+    width: 100vw;
+    max-width: 100vw;
+    background: linear-gradient(var(--lineHighlight), var(--lineHighlight)), var(--background);
+}
+`;
+const HIDE_TOP_BAR_STYLES = `
+header {
+    display: none !important;
+}
+`;
+const HIDE_MENU_PANEL_STYLES = `
+nav {
+    display: none !important;
+}
+`;
+const HIDE_CODE_EDITOR_STYLES = `
+.cm-editor {
+    display: none !important;
+}
+`;
+const HIDE_EDITOR_SCROLLBAR_STYLES = `
+.cm-scroller {
+    scrollbar-width: none;
+}
 `;
 
 // State
@@ -41,6 +61,9 @@ let browser = null;
 const USER_DATA_DIR_ARG = "--user-data-dir=";
 let userDataDir = null;
 let maximiseMenuPanel = true;
+let hideTopBar = true;
+let hideMenuPanel = false;
+let hideCodeEditor = false;
 const CUSTOM_CSS_ARG = "--custom-css-b64=";
 let customCss = null;
 for (const arg of process.argv) {
@@ -49,6 +72,15 @@ for (const arg of process.argv) {
     }
     if (arg === "--no-maximise-menu-panel") {
         maximiseMenuPanel = false;
+    }
+    if (arg === "--no-hide-top-bar") {
+        hideTopBar = false;
+    }
+    if (arg === "--hide-menu-panel") {
+        hideMenuPanel = true;
+    }
+    if (arg === "--hide-code-editor") {
+        hideCodeEditor = true;
     }
     if (arg.startsWith(CUSTOM_CSS_ARG)) {
         const b64 = arg.slice(CUSTOM_CSS_ARG.length);
@@ -124,7 +156,10 @@ process.stdin.on("data", async (data) => {
             headless: false,
             defaultViewport: null,
             userDataDir: userDataDir,
-            args: [`--app=${STRUDEL_URL}`],
+            args: [
+                `--app=${STRUDEL_URL}`,
+                "--autoplay-policy=no-user-gesture-required",
+            ],
         });
 
         // Wait for the page to be ready (found the editor)
@@ -141,8 +176,18 @@ process.stdin.on("data", async (data) => {
         });
 
         // Register additional styles
+        await page.addStyleTag({ content: HIDE_EDITOR_SCROLLBAR_STYLES });
         if (maximiseMenuPanel) {
-            await page.addStyleTag({ content: MENU_PANEL_MAX_STYLE });
+            await page.addStyleTag({ content: MAX_MENU_PANEL_STYLES });
+        }
+        if (hideTopBar) {
+            await page.addStyleTag({ content: HIDE_TOP_BAR_STYLES });
+        }
+        if (hideMenuPanel) {
+            await page.addStyleTag({ content: HIDE_MENU_PANEL_STYLES });
+        }
+        if (hideCodeEditor) {
+            await page.addStyleTag({ content: HIDE_CODE_EDITOR_STYLES });
         }
         if (customCss) {
             await page.addStyleTag({ content: customCss });

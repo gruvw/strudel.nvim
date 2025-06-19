@@ -14,14 +14,19 @@ This plugin launches Strudel in a browser window and provides real-time two-way 
 
 - **Real-time sync** - Two-way synchronization between Neovim buffer and Strudel editor.
 - **Playback control** - Control Strudel's play/stop and update functions directly from Neovim.
-- **Side by side workflow** - Maximized Strudel menu pannel (by default) for side by side Neovim-Strudel seamless workflow (effectively replacing the default Strudel editor by Neovim).
+- **Side by side workflow** - Maximized Strudel menu pannel and hidden top bar (by default) for side by side Neovim-Strudel seamless workflow (effectively replacing the default Strudel editor by Neovim).
 - **File based** - Save your files as `*.str` and open them right away in Strudel, anywhere on your file system (open and change files with your own file manager or fuzzy finder/picker).
 - **Swap files** - Change the buffer that is synced to Strudel on the fly with a simple command.
 - **File type support** - The plugin automatically sets the file type to `javascript` for `.str` files, providing proper syntax highlighting and language support.
+- **Hydra support** - As Strudel [integrates with Hydra](https://strudel.cc/learn/hydra/), you can also live code stunning visuals directly from Neovim. Check out the [Hydra only config options](#hydra-only-config-options) to only display the Hydra background (allows for easy screen projections during live performances for example).
 - **Custom CSS injection** - Optionally inject your own CSS into the Strudel web editor by specifying a `custom_css_file` in the setup options. Allows you to fully customize the Strudel UI from your Neovim config.
+- **Auto update** - Optionally trigger Strudel Update when saving the buffer content.
+- **Customizable** - Check out the [configuration options](#configuration) to customize your experience and user-interface.
 - **Session persistence** - Remembers browser state across sessions.
 
-Uses [Puppeteer](https://github.com/puppeteer/puppeteer) to control a real browser instance allowing you to write strudel code from Neovim (your favorite text editor) with all your regular config and plugins.
+Uses [Puppeteer](https://github.com/puppeteer/puppeteer) to control a real browser instance allowing you to write Strudel code from Neovim (your favorite text editor) with all your regular config and plugins.
+
+Take a look at the project's [roadmap](docs/roadmap.md) to see upcoming features (along with all the work accomplished).
 
 ## Prerequisites
 
@@ -67,15 +72,41 @@ You can customize the plugin behavior by passing options to the setup function:
 
 ```lua
 require("strudel").setup({
-  -- Path to the directory where Strudel browser user data (cookies, sessions, etc.) is stored.
-  browser_data_dir = "~/.cache/strudel-nvim/", -- (optional)
-  -- Maximise the menu panel (default: true)
-  maximise_menu_panel = true, -- (optional)
+  -- Path to the directory where Strudel browser user data (cookies, sessions, etc.) is stored
+  -- (optional, default: `~/.cache/strudel-nvim/`)
+  browser_data_dir = "~/.cache/strudel-nvim/",
+  -- Set to `true` to automatically trigger the `StrudelUpdate` command after writing the buffer content
+  -- (optional, default: false)
+  update_on_save = false,
+  -- Hide the default Strudel top bar (controls)
+  -- (optional, default: true)
+  hide_top_bar = true,
+  -- Maximise the menu panel
+  -- (optional, default: true)
+  maximise_menu_panel = true,
+  -- Hide the Strudel menu panel (and handle)
+  -- (optional, default: false)
+  hide_menu_panel = false,
+  -- Hide the Strudel code editor
+  -- (optional, default: false)
+  hide_code_editor = false,
   -- Path to a custom CSS file to style the Strudel web editor (base64-encoded and injected at launch).
   -- This allows you to override or extend the default Strudel UI appearance.
-  custom_css_file = "/path/to/your/custom.css", -- (optional)
-  -- Set to `true` to automatically trigger the `StrudelUpdate` command after writing the buffer content.
-  update_on_save = false,
+  -- (optional, default: nil)
+  custom_css_file = "/path/to/your/custom.css",
+})
+```
+
+#### Hydra only config options
+
+You can combine the following config options to only display the Hydra background.
+It allows for easy screen projections during live performances for example.
+
+```lua
+require("strudel").setup({
+  hide_menu_panel = true,
+  hide_code = true,
+  -- Optionally set to `hide_code = false` if you want to overlay the code
 })
 ```
 
@@ -154,6 +185,9 @@ require("highlight-undo").setup({
 
 ## Acknowledgments
 
+This project would not be possible without the wonderful technologies below:
+
 - [Strudel](https://strudel.cc/) - Web-based environment for live coding algorithmic patterns.
+- [Hydra](https://github.com/hydra-synth/hydra) - Livecoding networked visuals in the browser.
 - [Puppeteer](https://pptr.dev/) - Browser automation library and JavaScript API for Chrome and Firefox.
 - [Neovim](https://neovim.io/) - Vim-fork focused on extensibility and usability.
