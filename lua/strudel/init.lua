@@ -17,6 +17,7 @@ local STRUDEL_SYNC_AUTOCOMMAND = "StrudelSync"
 local user_browser_data_dir = nil
 local maximise_menu_panel = true
 local custom_css_b64 = nil
+local update_on_save = false
 
 -- State
 local strudel_job_id = nil
@@ -224,6 +225,18 @@ function M.set_buffer(opts)
     end,
   })
 
+  if update_on_save then
+    vim.api.nvim_create_autocmd("BufWritePost", {
+      group = STRUDEL_SYNC_AUTOCOMMAND,
+      buffer = bufnr,
+      callback = function()
+        if strudel_job_id then
+          M.update()
+        end
+      end,
+    })
+  end
+
   local buffer_name = vim.fn.bufname(bufnr)
   if buffer_name == "" then
     buffer_name = "#" .. bufnr
@@ -247,6 +260,9 @@ function M.setup(opts)
     else
       vim.notify("Could not read custom CSS file: " .. css_path, vim.log.levels.ERROR)
     end
+  end
+  if opts.update_on_save then
+    update_on_save = opts.update_on_save
   end
 
   -- Create autocmd group

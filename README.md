@@ -71,6 +71,8 @@ require("strudel").setup({
   -- Path to a custom CSS file to style the Strudel web editor (base64-encoded and injected at launch).
   -- This allows you to override or extend the default Strudel UI appearance.
   custom_css_file = "/path/to/your/custom.css", -- (optional)
+  -- Set to `true` to automatically trigger the `StrudelUpdate` command after writing the buffer content.
+  update_on_save = false,
 })
 ```
 

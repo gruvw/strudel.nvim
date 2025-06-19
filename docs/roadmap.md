@@ -13,6 +13,7 @@
 - [X] Provide a way to disable color updates of the file when content is set (caused by HighlightUndo plugin)
 - [X] Send custom CSS file to the Strudel page (from Lua plugin config)
 - [X] Support Strudel inline visualizations (currently clears them on content sync), change the update editor content system
+- [X] Optionally auto trigger update command when saving the buffer
 - [ ] Two way sync cursor position between Neovim and Strudel editor
 - [ ] Headless mode (no opened web browser, pure Neovim)
 - [ ] Chose and set an open-source license for the project
