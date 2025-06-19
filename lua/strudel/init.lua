@@ -7,7 +7,8 @@ local MESSAGES = {
   STOP = "STRUDEL_STOP",
   PLAY_STOP = "STRUDEL_PLAY_STOP",
   UPDATE = "STRUDEL_UPDATE",
-  READY = "STRUDEL_READY"
+  READY = "STRUDEL_READY",
+  CURSOR = "STRUDEL_CURSOR:",
 }
 
 local STRUDEL_SYNC_AUTOCOMMAND = "StrudelSync"
@@ -29,6 +30,28 @@ local function send_message(message)
   else
     vim.notify("No active Strudel session", vim.log.levels.WARN)
   end
+end
+
+local function send_cursor_position()
+  if not strudel_job_id or not strudel_synced_bufnr or not strudel_ready then
+    return
+  end
+  if not vim.api.nvim_buf_is_valid(strudel_synced_bufnr) then
+    return
+  end
+
+  local pos = vim.api.nvim_win_get_cursor(0)
+  local line = pos[1]
+  local col = pos[2]
+  local lines = vim.api.nvim_buf_get_lines(0, 0, line, false)
+  local char_offset = 0
+
+  for i = 1, line - 1 do
+    char_offset = char_offset + #lines[i] + 1
+  end
+  char_offset = char_offset + col
+
+  send_message(MESSAGES.CURSOR .. char_offset)
 end
 
 local function send_buffer_content()
@@ -68,19 +91,6 @@ local function set_buffer_content(bufnr, content)
     -- Restore window view
     vim.fn.winrestview(view)
   end)
-end
-
-local function send_cursor_position()
-  if not strudel_job_id or not strudel_synced_bufnr or not strudel_ready then
-    return
-  end
-  if not vim.api.nvim_buf_is_valid(strudel_synced_bufnr) then
-    return
-  end
-  local pos = vim.api.nvim_win_get_cursor(0) -- {line, col}
-  local line = pos[1]
-  local col = pos[2]
-  send_message(string.format("STRUDEL_CURSOR:%d:%d", line, col))
 end
 
 -- Public API

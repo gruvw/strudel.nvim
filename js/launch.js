@@ -9,7 +9,8 @@ const MESSAGES = {
     STOP: "STRUDEL_STOP",
     PLAY_STOP: "STRUDEL_PLAY_STOP",
     UPDATE: "STRUDEL_UPDATE",
-    READY: "STRUDEL_READY"
+    READY: "STRUDEL_READY",
+    CURSOR: "STRUDEL_CURSOR:",
 };
 
 const SELECTORS = {
@@ -67,7 +68,7 @@ async function updateEditorContent(content) {
 
     try {
         await page.evaluate(async (content) => {
-            await window.strudelMirror.setCode(content);
+            window.strudelMirror.editor.contentDOM.textContent = content;
             window.strudelMirror.root.click();
         }, content);
     } catch (error) {
@@ -85,14 +86,12 @@ process.stdin.on("data", async (data) => {
             process.exit(0);
         }
     } else if (message === MESSAGES.PLAY_STOP) {
-        await page.evaluate(async () => {
-            await window.strudelMirror.toggle();
-            window.strudelMirror.root.click();
+        await page.evaluate(() => {
+            window.strudelMirror.toggle();
         });
     } else if (message === MESSAGES.UPDATE) {
-        await page.evaluate(async () => {
-            await window.strudelMirror.evaluate();
-            window.strudelMirror.root.click();
+        await page.evaluate(() => {
+            window.strudelMirror.evaluate();
         });
     } else if (message.startsWith(MESSAGES.CONTENT)) {
         const base64Content = message.slice(MESSAGES.CONTENT.length);
@@ -102,6 +101,19 @@ process.stdin.on("data", async (data) => {
 
         const content = Buffer.from(base64Content, "base64").toString("utf8");
         await updateEditorContent(content);
+    } else if (message.startsWith(MESSAGES.CURSOR)) {
+        return;
+        // Handle cursor location message
+        const cursorStr = message.slice(MESSAGES.CURSOR.length);
+        const cursorPos = parseInt(cursorStr, 10);
+        await page.evaluate((pos) => {
+            // Clamp pos to valid range in the editor
+            const docLength = window.strudelMirror.editor.state.doc.length;
+            if (pos < 0) pos = 0;
+            if (pos > docLength) pos = docLength;
+            window.strudelMirror.setCursorLocation(pos);
+            window.strudelMirror.editor.dispatch({ scrollIntoView: true });
+        }, cursorPos);
     }
 });
 
@@ -154,6 +166,7 @@ process.stdin.on("data", async (data) => {
         await page.evaluate((editorSelector, eventName) => {
             const editor = document.querySelector(editorSelector);
 
+            // Listen for content changes
             const observer = new MutationObserver(() => {
                 editor.dispatchEvent(new CustomEvent(eventName));
             });
