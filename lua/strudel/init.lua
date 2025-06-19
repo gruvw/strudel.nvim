@@ -12,22 +12,26 @@ local MESSAGES = {
 }
 
 local STRUDEL_SYNC_AUTOCOMMAND = "StrudelSync"
-
--- Config
-local user_browser_data_dir = nil
-local maximise_menu_panel = true
-local custom_css_b64 = nil
-local update_on_save = false
-local hide_top_bar = true
-local hide_menu_panel = false
-local hide_code_editor = false
-local headless = false
+local SUCCESSIVE_CMD_DELAY = 100
 
 -- State
 local strudel_job_id = nil
 local last_content = nil
 local strudel_synced_bufnr = nil
 local strudel_ready = false
+local custom_css_b64 = nil
+
+-- Config with default options
+local config = {
+  hide_top_bar = true,
+  maximise_menu_panel = true,
+  hide_menu_panel = false,
+  hide_code_editor = false,
+  update_on_save = false,
+  headless = false,
+  browser_data_dir = nil,
+  custom_css_file = nil,
+}
 
 local function send_message(message)
   if strudel_job_id then
@@ -66,6 +70,7 @@ local function send_buffer_content()
   if not vim.api.nvim_buf_is_valid(strudel_synced_bufnr) then
     return
   end
+
   local lines = vim.api.nvim_buf_get_lines(strudel_synced_bufnr, 0, -1, false)
   local content = table.concat(lines, "\n")
   local base64_content = base64.encode(content)
@@ -89,17 +94,51 @@ local function set_buffer_content(bufnr, content)
 
     -- save current window view
     local view = vim.fn.winsaveview()
-
     -- Update buffer content
     vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
-
     -- Restore window view
     vim.fn.winrestview(view)
   end)
 end
 
--- Public API
-function M.start()
+function M.setup(opts)
+  opts = opts or {}
+  config = vim.tbl_deep_extend("force", config, opts)
+
+  -- Load custom CSS content and base64 encode it
+  local css_path = config.custom_css_file
+  if css_path then
+    local f = io.open(css_path, "rb")
+    if f then
+      local css = f:read("*a")
+      f:close()
+      custom_css_b64 = base64.encode(css)
+    else
+      vim.notify("Could not read custom CSS file: " .. css_path, vim.log.levels.ERROR)
+    end
+  end
+
+  -- Create autocmd group
+  vim.api.nvim_create_augroup(STRUDEL_SYNC_AUTOCOMMAND, { clear = true })
+
+  -- Set file type for .str files to JavaScript
+  vim.api.nvim_create_autocmd({ "BufRead", "BufNewFile" }, {
+    pattern = "*.str",
+    callback = function()
+      vim.bo.filetype = "javascript"
+    end,
+  })
+
+  -- Commands
+  vim.api.nvim_create_user_command("StrudelLaunch", M.launch, {})
+  vim.api.nvim_create_user_command("StrudelQuit", M.quit, {})
+  vim.api.nvim_create_user_command("StrudelPlayStop", M.play_stop, {})
+  vim.api.nvim_create_user_command("StrudelUpdate", M.update, {})
+  vim.api.nvim_create_user_command("StrudelSetBuffer", M.set_buffer, { nargs = "?" })
+  vim.api.nvim_create_user_command("StrudelExecute", M.execute, {})
+end
+
+function M.launch()
   if strudel_job_id ~= nil then
     vim.notify("Strudel is already running, run :StrudelQuit to quit.", vim.log.levels.ERROR)
     return
@@ -109,23 +148,23 @@ function M.start()
   local launch_script = plugin_root .. "/js/launch.js"
   local cmd = "node " .. vim.fn.shellescape(launch_script)
 
-  if user_browser_data_dir then
-    cmd = cmd .. " --user-data-dir=" .. vim.fn.shellescape(user_browser_data_dir)
+  if config.hide_top_bar then
+    cmd = cmd .. " --hide-top-bar"
   end
-  if not maximise_menu_panel then
-    cmd = cmd .. " --no-maximise-menu-panel"
+  if config.maximise_menu_panel then
+    cmd = cmd .. " --maximise-menu-panel"
   end
-  if not hide_top_bar then
-    cmd = cmd .. " --no-hide-top-bar"
-  end
-  if hide_menu_panel then
+  if config.hide_menu_panel then
     cmd = cmd .. " --hide-menu-panel"
   end
-  if hide_code_editor then
+  if config.hide_code_editor then
     cmd = cmd .. " --hide-code-editor"
   end
-  if headless then
+  if config.headless then
     cmd = cmd .. " --headless"
+  end
+  if config.browser_data_dir then
+    cmd = cmd .. " --user-data-dir=" .. vim.fn.shellescape(config.browser_data_dir)
   end
   if custom_css_b64 then
     cmd = cmd .. " --custom-css-b64=" .. vim.fn.shellescape(custom_css_b64)
@@ -209,13 +248,13 @@ function M.set_buffer(opts)
 
   if not strudel_job_id then
     vim.notify("No active Strudel session", vim.log.levels.WARN)
-    return
+    return false
   end
 
   local bufnr = opts and opts.args and opts.args ~= "" and tonumber(opts.args) or vim.api.nvim_get_current_buf()
   if not bufnr or not vim.api.nvim_buf_is_valid(bufnr) then
     vim.notify("Invalid buffer number for :StrudelSetBuffer", vim.log.levels.ERROR)
-    return
+    return false
   end
 
   strudel_synced_bufnr = bufnr
@@ -241,7 +280,8 @@ function M.set_buffer(opts)
     end,
   })
 
-  if update_on_save then
+  -- Set up autocommand to update on save
+  if config.update_on_save then
     vim.api.nvim_create_autocmd("BufWritePost", {
       group = STRUDEL_SYNC_AUTOCOMMAND,
       buffer = bufnr,
@@ -258,58 +298,18 @@ function M.set_buffer(opts)
     buffer_name = "#" .. bufnr
   end
   vim.notify("Strudel is now syncing buffer " .. buffer_name, vim.log.levels.INFO)
+
+  return true
 end
 
-function M.setup(opts)
-  opts = opts or {}
-  user_browser_data_dir = opts.browser_data_dir
-  if opts.maximise_menu_panel ~= nil then
-    maximise_menu_panel = opts.maximise_menu_panel
+-- Combo command to set the current buffer and trigger update
+function M.execute()
+    local ok = M.set_buffer()
+    if ok then
+      vim.defer_fn(function()
+        M.update()
+      end, SUCCESSIVE_CMD_DELAY)
   end
-  if opts.hide_top_bar ~= nil then
-    hide_top_bar = opts.hide_top_bar
-  end
-  if opts.hide_menu_panel ~= nil then
-    hide_menu_panel = opts.hide_menu_panel
-  end
-  if opts.hide_code_editor ~= nil then
-    hide_code_editor = opts.hide_code_editor
-  end
-  if opts.headless ~= nil then
-    headless = opts.headless
-  end
-  if opts.custom_css_file then
-    local css_path = opts.custom_css_file
-    local f = io.open(css_path, "rb")
-    if f then
-      local css = f:read("*a")
-      f:close()
-      custom_css_b64 = base64.encode(css)
-    else
-      vim.notify("Could not read custom CSS file: " .. css_path, vim.log.levels.ERROR)
-    end
-  end
-  if opts.update_on_save then
-    update_on_save = opts.update_on_save
-  end
-
-  -- Create autocmd group
-  vim.api.nvim_create_augroup(STRUDEL_SYNC_AUTOCOMMAND, { clear = true })
-
-  -- Set file type for .str files to JavaScript
-  vim.api.nvim_create_autocmd({ "BufRead", "BufNewFile" }, {
-    pattern = "*.str",
-    callback = function()
-      vim.bo.filetype = "javascript"
-    end,
-  })
-
-  -- Commands
-  vim.api.nvim_create_user_command("StrudelStart", M.start, {})
-  vim.api.nvim_create_user_command("StrudelQuit", M.quit, {})
-  vim.api.nvim_create_user_command("StrudelPlayStop", M.play_stop, {})
-  vim.api.nvim_create_user_command("StrudelUpdate", M.update, {})
-  vim.api.nvim_create_user_command("StrudelSetBuffer", M.set_buffer, { nargs = "?" })
 end
 
 return M

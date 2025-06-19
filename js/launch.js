@@ -19,85 +19,90 @@ const SELECTORS = {
 const EVENTS = {
     CONTENT_CHANGED: "strudel-content-changed"
 };
+const STYLES = {
+    HIDE_EDITOR_SCROLLBAR: `
+        .cm-scroller {
+            scrollbar-width: none;
+        }
+    `,
+    HIDE_TOP_BAR: `
+        header {
+            display: none !important;
+        }
+    `,
+    MAX_MENU_PANEL: `
+        nav:not(:has(> button:first-child)) {
+            position: absolute;
+            z-index: 99;
+            height: 100%;
+            width: 100vw;
+            max-width: 100vw;
+            background: linear-gradient(var(--lineHighlight), var(--lineHighlight)), var(--background);
+        }
+    `,
+    HIDE_MENU_PANEL: `
+        nav {
+            display: none !important;
+        }
+    `,
+    HIDE_CODE_EDITOR: `
+        .cm-editor {
+            display: none !important;
+        }
+    `,
+};
 
-// Additional styles
-const MAX_MENU_PANEL_STYLES = `
-nav:not(:has(> button:first-child)) {
-    position: absolute;
-    z-index: 99;
-    height: 100%;
-    width: 100vw;
-    max-width: 100vw;
-    background: linear-gradient(var(--lineHighlight), var(--lineHighlight)), var(--background);
-}
-`;
-const HIDE_TOP_BAR_STYLES = `
-header {
-    display: none !important;
-}
-`;
-const HIDE_MENU_PANEL_STYLES = `
-nav {
-    display: none !important;
-}
-`;
-const HIDE_CODE_EDITOR_STYLES = `
-.cm-editor {
-    display: none !important;
-}
-`;
-const HIDE_EDITOR_SCROLLBAR_STYLES = `
-.cm-scroller {
-    scrollbar-width: none;
-}
-`;
+const CLI_ARGS = {
+    HIDE_TOP_BAR: "--hide-top-bar",
+    MAXIMISE_MENU_PANEL: "--maximise-menu-panel",
+    HIDE_MENU_PANEL: "--hide-menu-panel",
+    HIDE_CODE_EDITOR: "--hide-code-editor",
+    HEADLESS: "--headless",
+    USER_DATA_DIR: "--user-data-dir=",
+    CUSTOM_CSS_B64: "--custom-css-b64="
+};
 
-// State
-let page = null;
-let lastContent = null;
-let browser = null;
+const userConfig = {
+    hideTopBar: false,
+    maximiseMenuPanel: false,
+    hideMenuPanel: false,
+    hideCodeEditor: false,
+    isHeadless: false,
+    userDataDir: null,
+    customCss: null,
+};
 
-// User configuration
-const USER_DATA_DIR_ARG = "--user-data-dir=";
-let userDataDir = null;
-let maximiseMenuPanel = true;
-let hideTopBar = true;
-let hideMenuPanel = false;
-let hideCodeEditor = false;
-let isHeadless = false;
-const CUSTOM_CSS_ARG = "--custom-css-b64=";
-let customCss = null;
+// Process program arguments at launch
 for (const arg of process.argv) {
-    if (arg.startsWith(USER_DATA_DIR_ARG)) {
-        userDataDir = arg.replace(USER_DATA_DIR_ARG, "");
-    }
-    if (arg === "--no-maximise-menu-panel") {
-        maximiseMenuPanel = false;
-    }
-    if (arg === "--no-hide-top-bar") {
-        hideTopBar = false;
-    }
-    if (arg === "--hide-menu-panel") {
-        hideMenuPanel = true;
-    }
-    if (arg === "--hide-code-editor") {
-        hideCodeEditor = true;
-    }
-    if (arg === "--headless") {
-        isHeadless = true;
-    }
-    if (arg.startsWith(CUSTOM_CSS_ARG)) {
-        const b64 = arg.slice(CUSTOM_CSS_ARG.length);
+    if (arg === CLI_ARGS.HIDE_TOP_BAR) {
+        userConfig.hideTopBar = true;
+    } else if (arg === CLI_ARGS.MAXIMISE_MENU_PANEL) {
+        userConfig.maximiseMenuPanel = true;
+    } else if (arg === CLI_ARGS.HIDE_MENU_PANEL) {
+        userConfig.hideMenuPanel = true;
+    } else if (arg === CLI_ARGS.HIDE_CODE_EDITOR) {
+        userConfig.hideCodeEditor = true;
+    } else if (arg === CLI_ARGS.HEADLESS) {
+        userConfig.isHeadless = true;
+    } else if (arg.startsWith(CLI_ARGS.USER_DATA_DIR)) {
+        userConfig.userDataDir = arg.replace(CLI_ARGS.USER_DATA_DIR, "");
+    } else if (arg.startsWith(CLI_ARGS.CUSTOM_CSS_B64)) {
+        const b64 = arg.slice(CLI_ARGS.CUSTOM_CSS_B64.length);
         try {
-            customCss = Buffer.from(b64, "base64").toString("utf8");
+            userConfig.customCss = Buffer.from(b64, "base64").toString("utf8");
         } catch (e) {
             console.error("Failed to decode custom CSS:", e);
         }
     }
 }
-if (!userDataDir) {
-    userDataDir = path.join(os.homedir(), ".cache", "strudel-nvim");
+if (!userConfig.userDataDir) {
+    userConfig.userDataDir = path.join(os.homedir(), ".cache", "strudel-nvim");
 }
+
+// State
+let page = null;
+let lastContent = null;
+let browser = null;
 
 async function updateEditorContent(content) {
     if (!page) return;
@@ -157,9 +162,9 @@ process.stdin.on("data", async (data) => {
 (async () => {
     try {
         browser = await puppeteer.launch({
-            headless: isHeadless,
+            headless: userConfig.isHeadless,
             defaultViewport: null,
-            userDataDir: userDataDir,
+            userDataDir: userConfig.userDataDir,
             ignoreDefaultArgs: ["--mute-audio"],
             args: [
                 `--app=${STRUDEL_URL}`,
@@ -181,21 +186,21 @@ process.stdin.on("data", async (data) => {
         });
 
         // Register additional styles
-        await page.addStyleTag({ content: HIDE_EDITOR_SCROLLBAR_STYLES });
-        if (maximiseMenuPanel) {
-            await page.addStyleTag({ content: MAX_MENU_PANEL_STYLES });
+        await page.addStyleTag({ content: STYLES.HIDE_EDITOR_SCROLLBAR });
+        if (userConfig.maximiseMenuPanel) {
+            await page.addStyleTag({ content: STYLES.MAX_MENU_PANEL });
         }
-        if (hideTopBar) {
-            await page.addStyleTag({ content: HIDE_TOP_BAR_STYLES });
+        if (userConfig.hideTopBar) {
+            await page.addStyleTag({ content: STYLES.HIDE_TOP_BAR });
         }
-        if (hideMenuPanel) {
-            await page.addStyleTag({ content: HIDE_MENU_PANEL_STYLES });
+        if (userConfig.hideMenuPanel) {
+            await page.addStyleTag({ content: STYLES.HIDE_MENU_PANEL });
         }
-        if (hideCodeEditor) {
-            await page.addStyleTag({ content: HIDE_CODE_EDITOR_STYLES });
+        if (userConfig.hideCodeEditor) {
+            await page.addStyleTag({ content: STYLES.HIDE_CODE_EDITOR });
         }
-        if (customCss) {
-            await page.addStyleTag({ content: customCss });
+        if (userConfig.customCss) {
+            await page.addStyleTag({ content: userConfig.customCss });
         }
 
         // Handle content sync
@@ -213,7 +218,7 @@ process.stdin.on("data", async (data) => {
             }
         });
 
-        if (!isHeadless) {
+        if (!userConfig.isHeadless) {
             await page.evaluate((editorSelector, eventName) => {
                 const editor = document.querySelector(editorSelector);
 

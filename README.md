@@ -2,29 +2,31 @@
 
 A Neovim plugin that integrates with [Strudel](https://strudel.cc/), a live coding web editor for algorithmic music.
 
-This plugin launches Strudel in a browser window and provides real-time two-way synchronization between a selected Neovim buffer and the Strudel editor as well as remote Strudel controls (play/stop, update).
+This plugin launches Strudel in a browser window and provides real-time two-way synchronization between a selected Neovim buffer and the Strudel editor, as well as remote Strudel controls (play/stop, update), and much more!
 
 <p align="center">
-  <img width="600" src="./docs/images/demo.png">
+  <img width="600" src="./docs/images/demo.png"><br>
+  <b>🎉 Happy live coding & algorave! 🎵</b>
 </p>
-
-**🎉 Happy live coding & algorave! 🎵**
 
 ## Features
 
 - **Real-time sync** - Two-way synchronization between Neovim buffer and Strudel editor.
 - **Playback control** - Control Strudel's _Play/Stop_ and _Update_ functions directly from Neovim.
 - **Side by side workflow** - Maximized Strudel menu pannel and hidden top bar (by default) for side by side Neovim-Strudel seamless workflow (effectively replacing the default Strudel editor by Neovim).
-- **File based** - Save your files as `*.str` and open them right away in Strudel, anywhere on your file system (open and change files with your own file manager or fuzzy finder/picker).
+- **File based** - Save your files as `*.str` and open them right away in Strudel through Neovim, anywhere on your file system (open and change files with your own file manager or fuzzy finder/picker, and allows using your regular version control system).
 - **Swap files** - Change the buffer that is synced to Strudel on the fly with the simple `:StrudelSetBuffer` command.
 - **File type support** - The plugin automatically sets the file type to `javascript` for `.str` files, providing proper syntax highlighting and language support.
-- **Hydra support** - As Strudel [integrates with Hydra](https://strudel.cc/learn/hydra/), you can also live code stunning visuals directly from Neovim. Check out the [Hydra only config options](#hydra-only-config-options) to only display the Hydra background (allows for easy screen projections during live performances for example).
+- **Hydra support** - As Strudel [integrates with Hydra](https://strudel.cc/learn/hydra/), you can also live code stunning visuals directly from Neovim. Check out the [Hydra only config options](#hydra-only-config-options) to only display the Hydra background (allows for easy screen projections during live performance for example).
 - **Custom CSS injection** - Optionally inject your own CSS into the Strudel web editor by specifying a `custom_css_file` in the setup options. Allows you to fully customize the Strudel UI from your Neovim config.
 - **Auto update** - Optionally trigger Strudel Update when saving the buffer content.
 - **Customizable** - Check out the [configuration options](#configuration) to customize your experience and user-interface.
+- **Headless mode** - Optionally launch Strudel without opening the Strudel browser window for a pure Neovim live coding experience.
 - **Session persistence** - Remembers browser state across sessions.
 
-Uses [Puppeteer](https://github.com/puppeteer/puppeteer) to control a real browser instance allowing you to write Strudel code from Neovim (your favorite text editor) with all your regular config and plugins.
+It uses [Puppeteer](https://github.com/puppeteer/puppeteer) to control a real browser instance allowing you to write Strudel code from Neovim (your favorite text editor) with all your regular config and plugins.
+
+Check out the [Strudel documentation](https://strudel.cc/learn) to learn about the language.
 
 Take a look at the project's [roadmap](docs/roadmap.md) to see upcoming features (along with all the work accomplished).
 
@@ -44,7 +46,7 @@ With [lazy.nvim](https://github.com/folke/lazy.nvim)
 ```lua
 {
   "gruvw/strudel.nvim",
-  cmd = "StrudelStart",
+  cmd = "StrudelLaunch",
   build = "npm install",
   config = function()
     require("strudel").setup()
@@ -103,7 +105,7 @@ require("strudel").setup({
 #### Hydra only config options
 
 You can combine the following config options to only display the Hydra background.
-It allows for easy screen projections during live performances for example.
+It allows for easy screen projections during live performance for example.
 
 ```lua
 require("strudel").setup({
@@ -113,15 +115,20 @@ require("strudel").setup({
 })
 ```
 
+<p align="center">
+  <img width="800" src="./docs/images/demo_hydra.png"><br>
+</p>
+
 ### Commands
 
 | Command              | Lua Function                | Description                                                      |
 |----------------------|----------------------------|------------------------------------------------------------------|
-| `:StrudelStart`     | `strudel.start()` | Launch a Strudel browser session and start syncing a buffer.     |
-| `:StrudelQuit`       | `strudel.quit()`   | Stop the Strudel session and disconnect from the browser.        |
-| `:StrudelPlayStop`   | `strudel.play_stop()`      | Toggle playback (Play/Stop) in the Strudel editor.               |
-| `:StrudelUpdate`     | `strudel.update()`         | Trigger the Update button in the Strudel editor.                 |
+| `:StrudelLaunch`     | `strudel.launch()` | Launch a Strudel browser session and start syncing the current buffer.     |
+| `:StrudelQuit`       | `strudel.quit()`   | Stop the Strudel session, disconnect and close the browser.        |
+| `:StrudelPlayStop`   | `strudel.play_stop()`      | Toggle playback (_Play/Stop_) in the Strudel editor.               |
+| `:StrudelUpdate`     | `strudel.update()`         | Trigger the _Update_ button in the Strudel editor.                 |
 | `:StrudelSetBuffer`  | `strudel.set_buffer()`     | Change the buffer that is synced to Strudel (optionally by providing a buffer number, current buffer otherwise). |
+| `:StrudelExecute`  | `strudel.execute()`     | Combo command: set current buffer and trigger _Update_. |
 
 **Note:** All Lua functions are available via `local strudel = require("strudel")` after setup.
 
@@ -132,15 +139,12 @@ I would advise configuring the following Neovim Keymaps in your config:
 ```lua
 local strudel = require("strudel")
 
-vim.keymap.set("n", "<leader>ss", strudel.start, { desc = "Start Strudel" })
+vim.keymap.set("n", "<leader>sl", strudel.launch, { desc = "Launch Strudel" })
 vim.keymap.set("n", "<leader>sq", strudel.quit, { desc = "Quit Strudel" })
 vim.keymap.set("n", "<leader>sp", strudel.play_stop, { desc = "Strudel Play/Stop" })
 vim.keymap.set("n", "<leader>su", strudel.update, { desc = "Strudel Update" })
 vim.keymap.set("n", "<leader>sb", strudel.set_buffer, { desc = "Strudel set current buffer" })
-vim.keymap.set("n", "<leader>sx", function()
-  strudel.set_buffer()
-  strudel.update()
-end, { desc = "Strudel set current buffer and update" })
+vim.keymap.set("n", "<leader>sx", strudel.execute, { desc = "Strudel set current buffer and update" })
 ```
 
 ## How It Works

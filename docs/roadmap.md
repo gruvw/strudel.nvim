@@ -19,9 +19,10 @@
 - [X] Hide browser editor scrollbar
 - [X] Hide code editor behind a config flag
 - [X] Headless mode (no opened web browser, pure Neovim)
-- [ ] Send Strudel errors back to neovim
+- [X] Hydra support
+- [X] Chose and set an open-source license for the project
+- [ ] Send Strudel errors back to Neovim
 - [ ] Two way sync cursor position between Neovim and Strudel editor
-- [ ] Chose and set an open-source license for the project
 - [ ] LSP and auto completion with the strudel api
 - [ ] JS LSP integration
 - [ ] Code formatter
