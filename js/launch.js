@@ -11,6 +11,7 @@ const MESSAGES = {
     UPDATE: "STRUDEL_UPDATE",
     READY: "STRUDEL_READY",
     CURSOR: "STRUDEL_CURSOR:",
+    EVAL_ERROR: "STRUDEL_EVAL_ERROR:",
 };
 
 const SELECTORS = {
@@ -50,6 +51,11 @@ const STYLES = {
             display: none !important;
         }
     `,
+    HIDE_ERROR_DISPLAY: `
+        header + div + div {
+            display: none !important;
+        }
+    `,
 };
 
 const CLI_ARGS = {
@@ -57,9 +63,10 @@ const CLI_ARGS = {
     MAXIMISE_MENU_PANEL: "--maximise-menu-panel",
     HIDE_MENU_PANEL: "--hide-menu-panel",
     HIDE_CODE_EDITOR: "--hide-code-editor",
+    HIDE_ERROR_DISPLAY: "--hide-error-display",
+    CUSTOM_CSS_B64: "--custom-css-b64=",
     HEADLESS: "--headless",
     USER_DATA_DIR: "--user-data-dir=",
-    CUSTOM_CSS_B64: "--custom-css-b64="
 };
 
 const userConfig = {
@@ -67,9 +74,10 @@ const userConfig = {
     maximiseMenuPanel: false,
     hideMenuPanel: false,
     hideCodeEditor: false,
+    hideErrorDisplay: false,
+    customCss: null,
     isHeadless: false,
     userDataDir: null,
-    customCss: null,
 };
 
 // Process program arguments at launch
@@ -82,10 +90,8 @@ for (const arg of process.argv) {
         userConfig.hideMenuPanel = true;
     } else if (arg === CLI_ARGS.HIDE_CODE_EDITOR) {
         userConfig.hideCodeEditor = true;
-    } else if (arg === CLI_ARGS.HEADLESS) {
-        userConfig.isHeadless = true;
-    } else if (arg.startsWith(CLI_ARGS.USER_DATA_DIR)) {
-        userConfig.userDataDir = arg.replace(CLI_ARGS.USER_DATA_DIR, "");
+    } else if (arg === CLI_ARGS.HIDE_ERROR_DISPLAY) {
+        userConfig.hideErrorDisplay = true;
     } else if (arg.startsWith(CLI_ARGS.CUSTOM_CSS_B64)) {
         const b64 = arg.slice(CLI_ARGS.CUSTOM_CSS_B64.length);
         try {
@@ -93,6 +99,10 @@ for (const arg of process.argv) {
         } catch (e) {
             console.error("Failed to decode custom CSS:", e);
         }
+    } else if (arg === CLI_ARGS.HEADLESS) {
+        userConfig.isHeadless = true;
+    } else if (arg.startsWith(CLI_ARGS.USER_DATA_DIR)) {
+        userConfig.userDataDir = arg.replace(CLI_ARGS.USER_DATA_DIR, "");
     }
 }
 if (!userConfig.userDataDir) {
@@ -202,6 +212,9 @@ process.stdin.on("data", async (data) => {
         if (userConfig.customCss) {
             await page.addStyleTag({ content: userConfig.customCss });
         }
+        if (userConfig.hideErrorDisplay) {
+          await page.addStyleTag({ content: STYLES.HIDE_ERROR_DISPLAY });
+        }
 
         // Handle content sync
         await page.exposeFunction("sendEditorContent", async () => {
@@ -217,7 +230,6 @@ process.stdin.on("data", async (data) => {
                 process.stdout.write(MESSAGES.CONTENT + base64Content + "\n");
             }
         });
-
         if (!userConfig.isHeadless) {
             await page.evaluate((editorSelector, eventName) => {
                 const editor = document.querySelector(editorSelector);
@@ -235,6 +247,28 @@ process.stdin.on("data", async (data) => {
                 editor.addEventListener(eventName, window.sendEditorContent);
             }, SELECTORS.EDITOR, EVENTS.CONTENT_CHANGED);
         }
+
+        // Handle eval errors reporting
+        await page.exposeFunction("notifyEvalError", (evalErrorMessage) => {
+            if (evalErrorMessage) {
+                const b64 = Buffer.from(evalErrorMessage).toString("base64");
+                process.stdout.write(MESSAGES.EVAL_ERROR + b64 + "\n");
+            }
+        });
+        await page.evaluate(() => {
+            let lastError = null;
+            setInterval(() => {
+                try {
+                    const currentError = window.strudelMirror.repl.state.evalError.message;
+                    if (currentError !== lastError) {
+                        lastError = currentError;
+                        window.notifyEvalError(currentError);
+                    }
+                } catch (e) {
+                    // Ignore errors (e.g., page not ready)
+                }
+            }, 300);
+        });
 
         // Signal that browser is ready
         process.stdout.write(MESSAGES.READY + "\n");

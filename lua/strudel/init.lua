@@ -9,6 +9,7 @@ local MESSAGES = {
   UPDATE = "STRUDEL_UPDATE",
   READY = "STRUDEL_READY",
   CURSOR = "STRUDEL_CURSOR:",
+  EVAL_ERROR = "STRUDEL_EVAL_ERROR:",
 }
 
 local STRUDEL_SYNC_AUTOCOMMAND = "StrudelSync"
@@ -23,14 +24,18 @@ local custom_css_b64 = nil
 
 -- Config with default options
 local config = {
-  hide_top_bar = true,
-  maximise_menu_panel = true,
-  hide_menu_panel = false,
-  hide_code_editor = false,
+  ui = {
+    hide_top_bar = true,
+    maximise_menu_panel = true,
+    hide_menu_panel = false,
+    hide_code_editor = false,
+    hide_error_display = false,
+    custom_css_file = nil,
+  },
+  report_eval_errors = true,
   update_on_save = false,
   headless = false,
   browser_data_dir = nil,
-  custom_css_file = nil,
 }
 
 local function send_message(message)
@@ -148,26 +153,29 @@ function M.launch()
   local launch_script = plugin_root .. "/js/launch.js"
   local cmd = "node " .. vim.fn.shellescape(launch_script)
 
-  if config.hide_top_bar then
+  if config.ui.hide_top_bar then
     cmd = cmd .. " --hide-top-bar"
   end
-  if config.maximise_menu_panel then
+  if config.ui.maximise_menu_panel then
     cmd = cmd .. " --maximise-menu-panel"
   end
-  if config.hide_menu_panel then
+  if config.ui.hide_menu_panel then
     cmd = cmd .. " --hide-menu-panel"
   end
-  if config.hide_code_editor then
+  if config.ui.hide_code_editor then
     cmd = cmd .. " --hide-code-editor"
+  end
+  if config.ui.hide_error_display then
+    cmd = cmd .. " --hide-error-display"
+  end
+  if custom_css_b64 then
+    cmd = cmd .. " --custom-css-b64=" .. vim.fn.shellescape(custom_css_b64)
   end
   if config.headless then
     cmd = cmd .. " --headless"
   end
   if config.browser_data_dir then
     cmd = cmd .. " --user-data-dir=" .. vim.fn.shellescape(config.browser_data_dir)
-  end
-  if custom_css_b64 then
-    cmd = cmd .. " --custom-css-b64=" .. vim.fn.shellescape(custom_css_b64)
   end
 
   -- Run the js script
@@ -210,6 +218,14 @@ function M.launch()
         local content = base64.decode(base64_content)
         if strudel_synced_bufnr and vim.api.nvim_buf_is_valid(strudel_synced_bufnr) then
           set_buffer_content(strudel_synced_bufnr, content)
+        end
+      elseif full_data:match("^" .. MESSAGES.EVAL_ERROR) then
+        local err_b64 = full_data:sub(#MESSAGES.EVAL_ERROR + 1)
+        local err = base64.decode(err_b64)
+        if config.report_eval_errors then
+          vim.schedule(function()
+            vim.notify("Strudel Error: " .. err, vim.log.levels.ERROR)
+          end)
         end
       end
     end,

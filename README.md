@@ -18,6 +18,7 @@ This plugin launches Strudel in a browser window and provides real-time two-way 
 - **Swap files** - Change the buffer that is synced to Strudel on the fly with the simple `:StrudelSetBuffer` command.
 - **File type support** - The plugin automatically sets the file type to `javascript` for `.str` files, providing proper syntax highlighting and language support.
 - **Hydra support** - As Strudel [integrates with Hydra](https://strudel.cc/learn/hydra/), you can also live code stunning visuals directly from Neovim. Check out the [Hydra only config options](#hydra-only-config-options) to only display the Hydra background (allows for easy screen projections during live performance for example).
+- **Strudel error reporting** - Reports Strudel evaluation errors back into Neovim (by default).
 - **Custom CSS injection** - Optionally inject your own CSS into the Strudel web editor by specifying a `custom_css_file` in the setup options. Allows you to fully customize the Strudel UI from your Neovim config.
 - **Auto update** - Optionally trigger Strudel Update when saving the buffer content.
 - **Customizable** - Check out the [configuration options](#configuration) to customize your experience and user-interface.
@@ -74,21 +75,30 @@ You can customize the plugin behavior by passing options to the setup function:
 
 ```lua
 require("strudel").setup({
+  -- Strudel web user interface related options
+  ui = {
+    -- Hide the default Strudel top bar (controls)
+    -- (optional, default: true)
+    hide_top_bar = true,
+    -- Maximise the menu panel
+    -- (optional, default: true)
+    maximise_menu_panel = true,
+    -- Hide the Strudel menu panel (and handle)
+    -- (optional, default: false)
+    hide_menu_panel = false,
+    -- Hide the Strudel code editor
+    -- (optional, default: false)
+    hide_code_editor = false,
+    -- Hide the Strudel eval error display under the editor
+    -- (optional, default: false)
+    hide_error_display = false,
+  },
   -- Set to `true` to automatically trigger the `StrudelUpdate` command after writing the buffer content
   -- (optional, default: false)
   update_on_save = false,
-  -- Hide the default Strudel top bar (controls)
+  -- Report evaluation errors from Strudel as Neovim notifications.
   -- (optional, default: true)
-  hide_top_bar = true,
-  -- Maximise the menu panel
-  -- (optional, default: true)
-  maximise_menu_panel = true,
-  -- Hide the Strudel menu panel (and handle)
-  -- (optional, default: false)
-  hide_menu_panel = false,
-  -- Hide the Strudel code editor
-  -- (optional, default: false)
-  hide_code_editor = false,
+  report_eval_errors = true,
   -- Path to a custom CSS file to style the Strudel web editor (base64-encoded and injected at launch).
   -- This allows you to override or extend the default Strudel UI appearance.
   -- (optional, default: nil)
@@ -109,9 +119,12 @@ It allows for easy screen projections during live performance for example.
 
 ```lua
 require("strudel").setup({
-  hide_menu_panel = true,
-  hide_code = true,
-  -- Optionally set to `hide_code = false` if you want to overlay the code
+  ui = {
+      hide_menu_panel = true,
+      hide_error_display = true,
+      hide_code = true,
+      -- Set `hide_code = false` if you want to overlay the code editor
+  },
 })
 ```
 
@@ -163,6 +176,8 @@ The Lua and JavaScript components communicate via stdin/stdout using a simple me
 - `STRUDEL_PLAY_STOP` - Trigger the _Play/Stop_.
 - `STRUDEL_UPDATE` - Trigger the _Update_ button.
 - `STRUDEL_READY` - Browser is ready (initialization).
+- `STRUDEL_CURSOR:<offset>` - Update the cursor position (character offset).
+- `STRUDEL_EVAL_ERROR:<base64-error>` - Sent from Strudel to Neovim to report an evaluation error.
 
 ### Synchronization
 
