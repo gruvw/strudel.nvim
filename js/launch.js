@@ -56,6 +56,19 @@ const STYLES = {
             display: none !important;
         }
     `,
+    DISABLE_EVAL_BG_FLASH: `
+        .cm-line:not(.cm-activeLine):has(> span) {
+            background: var(--lineBackground) !important;
+            width: fit-content;
+        }
+        .cm-line.cm-activeLine {
+            background: linear-gradient(var(--lineHighlight), var(--lineHighlight)), var(--lineBackground) !important;
+        }
+        .cm-line > *, .cm-line span[style*="background-color"] {
+            background-color: transparent !important;
+            filter: none !important;
+        }
+    `,
 };
 
 const CLI_ARGS = {
@@ -153,6 +166,7 @@ process.stdin.on("data", async (data) => {
         const content = Buffer.from(base64Content, "base64").toString("utf8");
         await updateEditorContent(content);
     } else if (message.startsWith(MESSAGES.CURSOR)) {
+        // TODO: Continue cursor location message implementation
         return;
         // Handle cursor location message
         const cursorStr = message.slice(MESSAGES.CURSOR.length);
@@ -197,6 +211,8 @@ process.stdin.on("data", async (data) => {
 
         // Register additional styles
         await page.addStyleTag({ content: STYLES.HIDE_EDITOR_SCROLLBAR });
+        await page.addStyleTag({ content: STYLES.DISABLE_EVAL_BG_FLASH });
+
         if (userConfig.maximiseMenuPanel) {
             await page.addStyleTag({ content: STYLES.MAX_MENU_PANEL });
         }
@@ -209,11 +225,11 @@ process.stdin.on("data", async (data) => {
         if (userConfig.hideCodeEditor) {
             await page.addStyleTag({ content: STYLES.HIDE_CODE_EDITOR });
         }
-        if (userConfig.customCss) {
-            await page.addStyleTag({ content: userConfig.customCss });
-        }
         if (userConfig.hideErrorDisplay) {
           await page.addStyleTag({ content: STYLES.HIDE_ERROR_DISPLAY });
+        }
+        if (userConfig.customCss) {
+            await page.addStyleTag({ content: userConfig.customCss });
         }
 
         // Handle content sync
