@@ -64,6 +64,7 @@ let maximiseMenuPanel = true;
 let hideTopBar = true;
 let hideMenuPanel = false;
 let hideCodeEditor = false;
+let isHeadless = false;
 const CUSTOM_CSS_ARG = "--custom-css-b64=";
 let customCss = null;
 for (const arg of process.argv) {
@@ -81,6 +82,9 @@ for (const arg of process.argv) {
     }
     if (arg === "--hide-code-editor") {
         hideCodeEditor = true;
+    }
+    if (arg === "--headless") {
+        isHeadless = true;
     }
     if (arg.startsWith(CUSTOM_CSS_ARG)) {
         const b64 = arg.slice(CUSTOM_CSS_ARG.length);
@@ -153,9 +157,10 @@ process.stdin.on("data", async (data) => {
 (async () => {
     try {
         browser = await puppeteer.launch({
-            headless: false,
+            headless: isHeadless,
             defaultViewport: null,
             userDataDir: userDataDir,
+            ignoreDefaultArgs: ["--mute-audio"],
             args: [
                 `--app=${STRUDEL_URL}`,
                 "--autoplay-policy=no-user-gesture-required",
@@ -208,21 +213,23 @@ process.stdin.on("data", async (data) => {
             }
         });
 
-        await page.evaluate((editorSelector, eventName) => {
-            const editor = document.querySelector(editorSelector);
+        if (!isHeadless) {
+            await page.evaluate((editorSelector, eventName) => {
+                const editor = document.querySelector(editorSelector);
 
-            // Listen for content changes
-            const observer = new MutationObserver(() => {
-                editor.dispatchEvent(new CustomEvent(eventName));
-            });
-            observer.observe(editor, {
-                childList: true,
-                characterData: true,
-                subtree: true
-            });
+                // Listen for content changes
+                const observer = new MutationObserver(() => {
+                    editor.dispatchEvent(new CustomEvent(eventName));
+                });
+                observer.observe(editor, {
+                    childList: true,
+                    characterData: true,
+                    subtree: true
+                });
 
-            editor.addEventListener(eventName, window.sendEditorContent);
-        }, SELECTORS.EDITOR, EVENTS.CONTENT_CHANGED);
+                editor.addEventListener(eventName, window.sendEditorContent);
+            }, SELECTORS.EDITOR, EVENTS.CONTENT_CHANGED);
+        }
 
         // Signal that browser is ready
         process.stdout.write(MESSAGES.READY + "\n");

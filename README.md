@@ -13,10 +13,10 @@ This plugin launches Strudel in a browser window and provides real-time two-way 
 ## Features
 
 - **Real-time sync** - Two-way synchronization between Neovim buffer and Strudel editor.
-- **Playback control** - Control Strudel's play/stop and update functions directly from Neovim.
+- **Playback control** - Control Strudel's _Play/Stop_ and _Update_ functions directly from Neovim.
 - **Side by side workflow** - Maximized Strudel menu pannel and hidden top bar (by default) for side by side Neovim-Strudel seamless workflow (effectively replacing the default Strudel editor by Neovim).
 - **File based** - Save your files as `*.str` and open them right away in Strudel, anywhere on your file system (open and change files with your own file manager or fuzzy finder/picker).
-- **Swap files** - Change the buffer that is synced to Strudel on the fly with a simple command.
+- **Swap files** - Change the buffer that is synced to Strudel on the fly with the simple `:StrudelSetBuffer` command.
 - **File type support** - The plugin automatically sets the file type to `javascript` for `.str` files, providing proper syntax highlighting and language support.
 - **Hydra support** - As Strudel [integrates with Hydra](https://strudel.cc/learn/hydra/), you can also live code stunning visuals directly from Neovim. Check out the [Hydra only config options](#hydra-only-config-options) to only display the Hydra background (allows for easy screen projections during live performances for example).
 - **Custom CSS injection** - Optionally inject your own CSS into the Strudel web editor by specifying a `custom_css_file` in the setup options. Allows you to fully customize the Strudel UI from your Neovim config.
@@ -72,9 +72,6 @@ You can customize the plugin behavior by passing options to the setup function:
 
 ```lua
 require("strudel").setup({
-  -- Path to the directory where Strudel browser user data (cookies, sessions, etc.) is stored
-  -- (optional, default: `~/.cache/strudel-nvim/`)
-  browser_data_dir = "~/.cache/strudel-nvim/",
   -- Set to `true` to automatically trigger the `StrudelUpdate` command after writing the buffer content
   -- (optional, default: false)
   update_on_save = false,
@@ -94,6 +91,12 @@ require("strudel").setup({
   -- This allows you to override or extend the default Strudel UI appearance.
   -- (optional, default: nil)
   custom_css_file = "/path/to/your/custom.css",
+  -- Headless mode: set to `true` to run the browser without launching a window
+  -- (optional, default: false)
+  headless = false,
+  -- Path to the directory where Strudel browser user data (cookies, sessions, etc.) is stored
+  -- (optional, default: `~/.cache/strudel-nvim/`)
+  browser_data_dir = "~/.cache/strudel-nvim/",
 })
 ```
 

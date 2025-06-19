@@ -21,6 +21,7 @@ local update_on_save = false
 local hide_top_bar = true
 local hide_menu_panel = false
 local hide_code_editor = false
+local headless = false
 
 -- State
 local strudel_job_id = nil
@@ -123,6 +124,9 @@ function M.start()
   if hide_code_editor then
     cmd = cmd .. " --hide-code-editor"
   end
+  if headless then
+    cmd = cmd .. " --headless"
+  end
   if custom_css_b64 then
     cmd = cmd .. " --custom-css-b64=" .. vim.fn.shellescape(custom_css_b64)
   end
@@ -210,7 +214,7 @@ function M.set_buffer(opts)
 
   local bufnr = opts and opts.args and opts.args ~= "" and tonumber(opts.args) or vim.api.nvim_get_current_buf()
   if not bufnr or not vim.api.nvim_buf_is_valid(bufnr) then
-    vim.notify("Invalid buffer number for StrudelSetBuffer", vim.log.levels.ERROR)
+    vim.notify("Invalid buffer number for :StrudelSetBuffer", vim.log.levels.ERROR)
     return
   end
 
@@ -270,6 +274,9 @@ function M.setup(opts)
   end
   if opts.hide_code_editor ~= nil then
     hide_code_editor = opts.hide_code_editor
+  end
+  if opts.headless ~= nil then
+    headless = opts.headless
   end
   if opts.custom_css_file then
     local css_path = opts.custom_css_file

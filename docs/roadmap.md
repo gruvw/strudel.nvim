@@ -18,10 +18,9 @@
 - [X] Hide menu panel behind a config flag
 - [X] Hide browser editor scrollbar
 - [X] Hide code editor behind a config flag
-- [ ] Mute browser audio command
+- [X] Headless mode (no opened web browser, pure Neovim)
 - [ ] Send Strudel errors back to neovim
 - [ ] Two way sync cursor position between Neovim and Strudel editor
-- [ ] Headless mode (no opened web browser, pure Neovim)
 - [ ] Chose and set an open-source license for the project
 - [ ] LSP and auto completion with the strudel api
 - [ ] JS LSP integration
