@@ -23,6 +23,8 @@
 - [X] Chose and set an open-source license for the project
 - [X] Report Strudel errors back to Neovim
 - [X] Hide error display box behind a config flag
+- [ ] Disable code editor line background flashing when triggering evaluation
+- [ ] Don't depend on the `https://strudel.cc` website, embed in local HTML.
 - [ ] Two way sync cursor position between Neovim and Strudel editor
 - [ ] LSP and auto completion with the strudel api
 - [ ] JS LSP integration

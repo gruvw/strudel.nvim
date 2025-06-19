@@ -3,13 +3,18 @@
   "version": "1.0.0",
   "description": "Launch and control Strudel from Neovim",
   "main": "js/launch.js",
+  "dependencies": {
+    "puppeteer": "^22.4.1"
+  },
+  "repository": "github:gruvw/strudel.nvim",
+  "author": {
+    "name": "gruvw",
+    "url": "https://gruvw.com"
+  },
   "keywords": [
     "neovim",
     "strudel",
     "plugin"
   ],
-  "author": "gruvw",
-  "dependencies": {
-    "puppeteer": "^22.4.1"
-  }
-} 
+  "license": "AGPL-3.0"
+}

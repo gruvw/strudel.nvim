@@ -120,6 +120,7 @@ It allows for easy screen projections during live performance for example.
 ```lua
 require("strudel").setup({
   ui = {
+      hide_top_bar = true,
       hide_menu_panel = true,
       hide_error_display = true,
       hide_code = true,
@@ -184,13 +185,11 @@ The Lua and JavaScript components communicate via stdin/stdout using a simple me
 The plugin implements intelligent two-way synchronization:
 
 - Neovim to Strudel - When the selected buffer's content changes, it trigger automatic updates to the Strudel editor.
-- Strudel to Neovim (not necessarily useful) - Changes in the Strudel editor are detected and synced back to Neovim.
+- Strudel to Neovim - Changes in the Strudel editor are detected and synced back to the Neovim buffer.
 
 Note on Loop Prevention - Base64 content comparison prevents infinite update loops (and new lines issues).
 
 ## Troubleshooting
-
-### Common Issues
 
 - Browser doesn't open - Ensure Node.js and npm are properly installed.
 - Permission errors - Ensure write permissions to the cache directory.
