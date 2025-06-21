@@ -93,7 +93,8 @@ require("strudel").setup({
     -- (optional, default: false)
     hide_error_display = false,
   },
-  -- Set to `true` to automatically trigger the `StrudelUpdate` command after writing the buffer content
+  -- Set to `true` to automatically trigger the code evaluation after saving the buffer content
+  -- Only works if the playback was already started (doesn't start the playback on save)
   -- (optional, default: false)
   update_on_save = false,
   -- Report evaluation errors from Strudel as Neovim notifications.
@@ -140,7 +141,7 @@ require("strudel").setup({
 | `:StrudelLaunch`     | `strudel.launch()` | Launch a Strudel browser session and start syncing the current buffer.     |
 | `:StrudelQuit`       | `strudel.quit()`   | Stop the Strudel session, disconnect and close the browser.        |
 | `:StrudelPlayStop`   | `strudel.play_stop()`      | Toggle playback (_Play/Stop_) in the Strudel editor.               |
-| `:StrudelUpdate`     | `strudel.update()`         | Trigger the _Update_ button in the Strudel editor.                 |
+| `:StrudelUpdate`     | `strudel.update()`         | Trigger code evaluation (the _Update_ button in the Strudel editor). It will start playback if not already started. |
 | `:StrudelSetBuffer`  | `strudel.set_buffer()`     | Change the buffer that is synced to Strudel (optionally by providing a buffer number, current buffer otherwise). |
 | `:StrudelExecute`  | `strudel.execute()`     | Combo command: set current buffer and trigger _Update_. |
 
@@ -175,7 +176,8 @@ The Lua and JavaScript components communicate via stdin/stdout using a simple me
 - `STRUDEL_CONTENT:<base64-content>` - Sync buffer content.
 - `STRUDEL_STOP` - Stop the session.
 - `STRUDEL_PLAY_STOP` - Trigger the _Play/Stop_.
-- `STRUDEL_UPDATE` - Trigger the _Update_ button.
+- `STRUDEL_UPDATE` - Trigger the _Update_ button (evaluate code).
+- `STRUDEL_REFRESH` - Trigger the code evaluation only when already playing (used for update on save).
 - `STRUDEL_READY` - Browser is ready (initialization).
 - `STRUDEL_CURSOR:<offset>` - Update the cursor position (character offset).
 - `STRUDEL_EVAL_ERROR:<base64-error>` - Sent from Strudel to Neovim to report an evaluation error.

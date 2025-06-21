@@ -24,8 +24,13 @@
 - [X] Report Strudel errors back to Neovim
 - [X] Hide error display box behind a config flag
 - [X] Disable code editor line background flashing when triggering evaluation
-- [ ] Don't depend on the `https://strudel.cc` website, embed in local HTML.
+- [X] Update on save should only update when already playing, not starting/restarting playback when saving the file (create a new REFRESH message)
+- [X] Fix fast typing messes with input in Neovim issue (use an event queue to sequentially process messages, at both ends)
+- [X] Fix all weird messaging problems (wrong content, weird characters, looping, reactive resend, ...)
+- [X] Persist cursor location across content update in Neovim and in Strudel editor
+- [ ] Fix current line jumping to first line in strudel editor when changing content
 - [ ] Two way sync cursor position between Neovim and Strudel editor
-- [ ] LSP and auto completion with the strudel api
+- [ ] Don't depend on the `https://strudel.cc` website, host locally
+- [ ] LSP and auto completion with the strudel API
 - [ ] JS LSP integration
 - [ ] Code formatter

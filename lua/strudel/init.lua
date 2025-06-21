@@ -7,6 +7,7 @@ local MESSAGES = {
   STOP = "STRUDEL_STOP",
   PLAY_STOP = "STRUDEL_PLAY_STOP",
   UPDATE = "STRUDEL_UPDATE",
+  REFRESH = "STRUDEL_REFRESH",
   READY = "STRUDEL_READY",
   CURSOR = "STRUDEL_CURSOR:",
   EVAL_ERROR = "STRUDEL_EVAL_ERROR:",
@@ -21,6 +22,10 @@ local last_content = nil
 local strudel_synced_bufnr = nil
 local strudel_ready = false
 local custom_css_b64 = nil
+
+-- Event queue for sequential message processing
+local event_queue = {}
+local is_processing_event = false
 
 -- Config with default options
 local config = {
@@ -80,7 +85,7 @@ local function send_buffer_content()
   local content = table.concat(lines, "\n")
   local base64_content = base64.encode(content)
 
-  if base64_content ~= last_content then
+  if base64_content ~= last_content and not is_processing_event then
     last_content = base64_content
     send_message(MESSAGES.CONTENT .. base64_content)
   end
@@ -97,7 +102,7 @@ local function set_buffer_content(bufnr, content)
       return
     end
 
-    -- save current window view
+    -- save current window view (persist cursor location across content update)
     local view = vim.fn.winsaveview()
     -- Update buffer content
     vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
@@ -106,6 +111,51 @@ local function set_buffer_content(bufnr, content)
   end)
 end
 
+local function handle_event(full_data)
+  if full_data:match("^" .. MESSAGES.READY) then
+    strudel_ready = true
+    if strudel_synced_bufnr then
+      send_buffer_content()
+    end
+  elseif full_data:match("^" .. MESSAGES.CONTENT) then
+    local content_b64 = full_data:sub(#MESSAGES.CONTENT + 1)
+    if content_b64 == last_content then
+      return
+    end
+    last_content = content_b64
+    if strudel_synced_bufnr and vim.api.nvim_buf_is_valid(strudel_synced_bufnr) then
+      local content = base64.decode(content_b64)
+      set_buffer_content(strudel_synced_bufnr, content)
+    end
+  elseif full_data:match("^" .. MESSAGES.EVAL_ERROR) then
+    local error_b64 = full_data:sub(#MESSAGES.EVAL_ERROR + 1)
+    local error = base64.decode(error_b64)
+    if config.report_eval_errors then
+      vim.schedule(function()
+        vim.notify("Strudel Error: " .. error, vim.log.levels.ERROR)
+      end)
+    end
+  end
+end
+
+local function process_event_queue()
+  if is_processing_event then
+    return
+  end
+
+  is_processing_event = true
+
+  vim.schedule(function()
+    while #event_queue > 0 do
+      local message = table.remove(event_queue, 1)
+      handle_event(message)
+    end
+
+    is_processing_event = false
+  end)
+end
+
+-- Public API
 function M.setup(opts)
   opts = opts or {}
   config = vim.tbl_deep_extend("force", config, opts)
@@ -187,7 +237,7 @@ function M.launch()
 
       for _, line in ipairs(data) do
         if line ~= "" then
-          vim.notify("Strudel Error: " .. line, vim.log.levels.ERROR)
+          vim.notify("Strudel Process Error: " .. line, vim.log.levels.ERROR)
         end
       end
     end,
@@ -196,38 +246,13 @@ function M.launch()
         return
       end
 
-      local full_data = table.concat(data, "\n")
-      if full_data == "" then
-        return
-      end
-
-      if full_data:match("^" .. MESSAGES.READY) then
-        strudel_ready = true
-        -- Send initial buffer content once Strudel is ready
-        if strudel_synced_bufnr then
-          send_buffer_content()
-        end
-      elseif full_data:match("^" .. MESSAGES.CONTENT) then
-        local base64_content = full_data:sub(#MESSAGES.CONTENT + 1)
-        if base64_content == last_content then
-          return
-        end
-
-        last_content = base64_content
-
-        local content = base64.decode(base64_content)
-        if strudel_synced_bufnr and vim.api.nvim_buf_is_valid(strudel_synced_bufnr) then
-          set_buffer_content(strudel_synced_bufnr, content)
-        end
-      elseif full_data:match("^" .. MESSAGES.EVAL_ERROR) then
-        local err_b64 = full_data:sub(#MESSAGES.EVAL_ERROR + 1)
-        local err = base64.decode(err_b64)
-        if config.report_eval_errors then
-          vim.schedule(function()
-            vim.notify("Strudel Error: " .. err, vim.log.levels.ERROR)
-          end)
+      for _, line in ipairs(data) do
+        if line ~= "" then
+          table.insert(event_queue, line)
         end
       end
+
+      process_event_queue()
     end,
     on_exit = function(_, code)
       if code == 0 then
@@ -303,7 +328,8 @@ function M.set_buffer(opts)
       buffer = bufnr,
       callback = function()
         if strudel_job_id then
-          M.update()
+          -- Use the REFRESH message to update only when already playing
+          send_message(MESSAGES.REFRESH)
         end
       end,
     })

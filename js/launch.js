@@ -9,6 +9,7 @@ const MESSAGES = {
     STOP: "STRUDEL_STOP",
     PLAY_STOP: "STRUDEL_PLAY_STOP",
     UPDATE: "STRUDEL_UPDATE",
+    REFRESH: "STRUDEL_REFRESH",
     READY: "STRUDEL_READY",
     CURSOR: "STRUDEL_CURSOR:",
     EVAL_ERROR: "STRUDEL_EVAL_ERROR:",
@@ -127,23 +128,81 @@ let page = null;
 let lastContent = null;
 let browser = null;
 
+// Event queue for sequential message processing
+const eventQueue = [];
+let isProcessingEvent = false;
+
 async function updateEditorContent(content) {
     if (!page) return;
 
     try {
-        await page.evaluate(async (content) => {
+        const prevLocation = await page.evaluate(async (content) => {
+            // Persist cursor location across content update
+            const view = window.strudelMirror.editor;
+            const pos = view.state.selection.main.head;
+            const line = view.state.doc.lineAt(pos);
+            const prevLocation = {
+                line: line.number,
+                column: pos - line.from
+            }
+
             window.strudelMirror.editor.contentDOM.textContent = content;
             window.strudelMirror.root.click();
+
+            return prevLocation;
         }, content);
+        // Restore cursor location
+        await page.evaluate(({ line, column }) => {
+            const view = window.strudelMirror.editor;
+            const lineCount = view.state.doc.lines;
+            const clampedLine = Math.min(line, lineCount);
+            const lineInfo = view.state.doc.line(clampedLine);
+            const pos = Math.min(lineInfo.from + column, lineInfo.to);
+
+            view.dispatch({
+                selection: { anchor: pos },
+            });
+        }, prevLocation);
     } catch (error) {
         console.error("Error updating editor:", error);
     }
 }
 
-// Handle messages from Neovim
-process.stdin.on("data", async (data) => {
-    const message = data.toString().trim();
+async function moveEditorCursor(position) {
+    await page.evaluate((pos) => {
+        // Clamp pos to valid range in the editor
+        const docLength = window.strudelMirror.editor.state.doc.length;
+        if (pos < 0) pos = 0;
+        if (pos > docLength) pos = docLength;
+        window.strudelMirror.setCursorLocation(pos);
+        window.strudelMirror.editor.dispatch({ scrollIntoView: true });
+    }, position);
+}
 
+// Handle messages from Neovim
+process.stdin.on("data", (data) => {
+    const message = data.toString().trim();
+    eventQueue.push(message);
+    processEventQueue();
+});
+
+async function processEventQueue() {
+    if (isProcessingEvent) return;
+    isProcessingEvent = true;
+
+    while (eventQueue.length > 0) {
+        const message = eventQueue.shift();
+        try {
+            await handleEvent(message);
+        } catch (err) {
+            console.error("Error processing event:", err);
+        }
+    }
+
+    isProcessingEvent = false;
+}
+
+async function handleEvent(message) {
     if (message === MESSAGES.STOP) {
         if (browser) {
             await browser.close();
@@ -156,6 +215,12 @@ process.stdin.on("data", async (data) => {
     } else if (message === MESSAGES.UPDATE) {
         await page.evaluate(() => {
             window.strudelMirror.evaluate();
+        });
+    } else if (message === MESSAGES.REFRESH) {
+        await page.evaluate(() => {
+            if (window.strudelMirror.repl.state.started) {
+                window.strudelMirror.evaluate();
+            }
         });
     } else if (message.startsWith(MESSAGES.CONTENT)) {
         const base64Content = message.slice(MESSAGES.CONTENT.length);
@@ -171,16 +236,9 @@ process.stdin.on("data", async (data) => {
         // Handle cursor location message
         const cursorStr = message.slice(MESSAGES.CURSOR.length);
         const cursorPos = parseInt(cursorStr, 10);
-        await page.evaluate((pos) => {
-            // Clamp pos to valid range in the editor
-            const docLength = window.strudelMirror.editor.state.doc.length;
-            if (pos < 0) pos = 0;
-            if (pos > docLength) pos = docLength;
-            window.strudelMirror.setCursorLocation(pos);
-            window.strudelMirror.editor.dispatch({ scrollIntoView: true });
-        }, cursorPos);
+        await moveEditorCursor(cursorPos);
     }
-});
+}
 
 // Initialize browser and set up event handlers
 (async () => {
@@ -240,7 +298,7 @@ process.stdin.on("data", async (data) => {
 
             const base64Content = Buffer.from(content).toString("base64");
 
-            if (base64Content !== lastContent) {
+            if (base64Content !== lastContent && !isProcessingEvent) {
                 lastContent = base64Content;
 
                 process.stdout.write(MESSAGES.CONTENT + base64Content + "\n");

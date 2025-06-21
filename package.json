@@ -12,8 +12,13 @@
     "url": "https://gruvw.com"
   },
   "keywords": [
+    "editor",
     "neovim",
+    "live",
     "strudel",
+    "coding",
+    "livecoding",
+    "algorave",
     "plugin"
   ],
   "license": "AGPL-3.0"
