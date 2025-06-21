@@ -6,9 +6,10 @@ const STRUDEL_URL = "https://strudel.cc/";
 
 const MESSAGES = {
     CONTENT: "STRUDEL_CONTENT:",
-    STOP: "STRUDEL_STOP",
-    PLAY_STOP: "STRUDEL_PLAY_STOP",
+    QUIT: "STRUDEL_QUIT",
+    TOGGLE: "STRUDEL_TOGGLE",
     UPDATE: "STRUDEL_UPDATE",
+    STOP: "STRUDEL_STOP",
     REFRESH: "STRUDEL_REFRESH",
     READY: "STRUDEL_READY",
     CURSOR: "STRUDEL_CURSOR:",
@@ -203,12 +204,12 @@ async function processEventQueue() {
 }
 
 async function handleEvent(message) {
-    if (message === MESSAGES.STOP) {
+    if (message === MESSAGES.QUIT) {
         if (browser) {
             await browser.close();
             process.exit(0);
         }
-    } else if (message === MESSAGES.PLAY_STOP) {
+    } else if (message === MESSAGES.TOGGLE) {
         await page.evaluate(() => {
             window.strudelMirror.toggle();
         });
@@ -221,6 +222,10 @@ async function handleEvent(message) {
             if (window.strudelMirror.repl.state.started) {
                 window.strudelMirror.evaluate();
             }
+        });
+    } else if (message === MESSAGES.STOP) {
+        await page.evaluate(() => {
+            window.strudelMirror.stop();
         });
     } else if (message.startsWith(MESSAGES.CONTENT)) {
         const base64Content = message.slice(MESSAGES.CONTENT.length);

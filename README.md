@@ -1,6 +1,6 @@
 # strudel.nvim
 
-A Neovim plugin that integrates with [Strudel](https://strudel.cc/), a live coding web editor for algorithmic music.
+A Neovim plugin that integrates with [Strudel](https://strudel.cc/), a live coding web editor for algorithmic music and visuals.
 
 This plugin launches Strudel in a browser window and provides real-time two-way synchronization between a selected Neovim buffer and the Strudel editor, as well as remote Strudel controls (play/stop, update), and much more!
 
@@ -13,7 +13,7 @@ This plugin launches Strudel in a browser window and provides real-time two-way 
 
 - **Real-time sync** - Two-way synchronization between Neovim buffer and Strudel editor.
 - **Playback control** - Control Strudel's _Play/Stop_ and _Update_ functions directly from Neovim.
-- **Side by side workflow** - Maximized Strudel menu pannel and hidden top bar (by default) for side by side Neovim-Strudel seamless workflow (effectively replacing the default Strudel editor by Neovim).
+- **Side by side workflow** - Maximized Strudel menu pannel and (optionally) hidden top bar for side by side Neovim-Strudel seamless workflow (effectively replacing the default Strudel editor by Neovim).
 - **File based** - Save your files as `*.str` and open them right away in Strudel through Neovim, anywhere on your file system (open and change files with your own file manager or fuzzy finder/picker, and allows using your regular version control system).
 - **Swap files** - Change the buffer that is synced to Strudel on the fly with the simple `:StrudelSetBuffer` command.
 - **File type support** - The plugin automatically sets the file type to `javascript` for `.str` files, providing proper syntax highlighting and language support.
@@ -63,7 +63,7 @@ Note - You have to call the `.setup()` function before using the plugin.
 
 1. **Launch Strudel** - Open a `.str` file or any buffer in Neovim and run: `:StrudelLaunch`.
 2. **Start Coding** - The Strudel editor will open in your browser with the content of the current buffer. By default the Strudel menu panel is maximized to allow for a seamless side by side workflow between Neovim and strudel (effectively hiding the default Strudel editor and replacing it by your Neovim window). Any changes you make in Neovim will be automatically synced to Strudel (and the other way arround as well).
-3. **Control Playback** - Use `:StrudelPlayStop` to toggle playback, and `:StrudelUpdate` to trigger the update of your code (effectively remotely presses the _Play/Stop_ and _Update_ buttons on Strudel header).
+3. **Control Playback** - Use `:StrudelToggle` to start and stop the playback, and `:StrudelUpdate` to trigger the update of your code (effectively remotely presses the _Play/Stop_ and _Update_ buttons on Strudel header).
 4. **Exit Session**: When you're done, run: `:StrudelQuit` or close your browser/your Neovim window.
 
 ### Configuration
@@ -77,15 +77,15 @@ You can customize the plugin behavior by passing options to the setup function:
 require("strudel").setup({
   -- Strudel web user interface related options
   ui = {
-    -- Hide the default Strudel top bar (controls)
-    -- (optional, default: true)
-    hide_top_bar = true,
     -- Maximise the menu panel
     -- (optional, default: true)
     maximise_menu_panel = true,
     -- Hide the Strudel menu panel (and handle)
     -- (optional, default: false)
     hide_menu_panel = false,
+    -- Hide the default Strudel top bar (controls)
+    -- (optional, default: false)
+    hide_top_bar = false,
     -- Hide the Strudel code editor
     -- (optional, default: false)
     hide_code_editor = false,
@@ -121,11 +121,11 @@ It allows for easy screen projections during live performance for example.
 ```lua
 require("strudel").setup({
   ui = {
-      hide_top_bar = true,
       hide_menu_panel = true,
+      hide_top_bar = true,
       hide_error_display = true,
-      hide_code = true,
-      -- Set `hide_code = false` if you want to overlay the code editor
+      hide_code_editor = true,
+      -- Set `hide_code_editor = false` if you want to overlay the code editor
   },
 })
 ```
@@ -139,9 +139,10 @@ require("strudel").setup({
 | Command              | Lua Function                | Description                                                      |
 |----------------------|----------------------------|------------------------------------------------------------------|
 | `:StrudelLaunch`     | `strudel.launch()` | Launch a Strudel browser session and start syncing the current buffer.     |
-| `:StrudelQuit`       | `strudel.quit()`   | Stop the Strudel session, disconnect and close the browser.        |
-| `:StrudelPlayStop`   | `strudel.play_stop()`      | Toggle playback (_Play/Stop_) in the Strudel editor.               |
-| `:StrudelUpdate`     | `strudel.update()`         | Trigger code evaluation (the _Update_ button in the Strudel editor). It will start playback if not already started. |
+| `:StrudelQuit`       | `strudel.quit()`   | Quit the Strudel session and close the browser.        |
+| `:StrudelToggle`     | `strudel.toggle()`      | Toggle playback (the _Play/Stop_ button) in the Strudel editor.               |
+| `:StrudelUpdate`     | `strudel.update()`         | Trigger code evaluation (the _Update_ button) in the Strudel editor. It will start playback if not already started. |
+| `:StrudelStop`       | `strudel.stop()`         | Stop playback in Strudel (calls `strudelMirror.stop()`). |
 | `:StrudelSetBuffer`  | `strudel.set_buffer()`     | Change the buffer that is synced to Strudel (optionally by providing a buffer number, current buffer otherwise). |
 | `:StrudelExecute`  | `strudel.execute()`     | Combo command: set current buffer and trigger _Update_. |
 
@@ -156,8 +157,9 @@ local strudel = require("strudel")
 
 vim.keymap.set("n", "<leader>sl", strudel.launch, { desc = "Launch Strudel" })
 vim.keymap.set("n", "<leader>sq", strudel.quit, { desc = "Quit Strudel" })
-vim.keymap.set("n", "<leader>sp", strudel.play_stop, { desc = "Strudel Play/Stop" })
+vim.keymap.set("n", "<leader>st", strudel.toggle, { desc = "Strudel Toggle Play/Stop" })
 vim.keymap.set("n", "<leader>su", strudel.update, { desc = "Strudel Update" })
+vim.keymap.set("n", "<leader>ss", strudel.stop, { desc = "Strudel Stop Playback" })
 vim.keymap.set("n", "<leader>sb", strudel.set_buffer, { desc = "Strudel set current buffer" })
 vim.keymap.set("n", "<leader>sx", strudel.execute, { desc = "Strudel set current buffer and update" })
 ```
@@ -174,9 +176,10 @@ The plugin consists of two main components:
 The Lua and JavaScript components communicate via stdin/stdout using a simple message protocol:
 
 - `STRUDEL_CONTENT:<base64-content>` - Sync buffer content.
-- `STRUDEL_STOP` - Stop the session.
-- `STRUDEL_PLAY_STOP` - Trigger the _Play/Stop_.
+- `STRUDEL_QUIT` - Quit the Strudel session and close the browser.
+- `STRUDEL_TOGGLE` - Toggle playback (play/stop) in Strudel.
 - `STRUDEL_UPDATE` - Trigger the _Update_ button (evaluate code).
+- `STRUDEL_STOP` - Stop playback in Strudel (calls `strudelMirror.stop()`).
 - `STRUDEL_REFRESH` - Trigger the code evaluation only when already playing (used for update on save).
 - `STRUDEL_READY` - Browser is ready (initialization).
 - `STRUDEL_CURSOR:<offset>` - Update the cursor position (character offset).

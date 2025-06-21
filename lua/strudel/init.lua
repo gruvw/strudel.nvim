@@ -4,9 +4,10 @@ local M = {}
 
 local MESSAGES = {
   CONTENT = "STRUDEL_CONTENT:",
-  STOP = "STRUDEL_STOP",
-  PLAY_STOP = "STRUDEL_PLAY_STOP",
+  QUIT = "STRUDEL_QUIT",
+  TOGGLE = "STRUDEL_TOGGLE",
   UPDATE = "STRUDEL_UPDATE",
+  STOP = "STRUDEL_STOP",
   REFRESH = "STRUDEL_REFRESH",
   READY = "STRUDEL_READY",
   CURSOR = "STRUDEL_CURSOR:",
@@ -30,9 +31,9 @@ local is_processing_event = false
 -- Config with default options
 local config = {
   ui = {
-    hide_top_bar = true,
     maximise_menu_panel = true,
     hide_menu_panel = false,
+    hide_top_bar = false,
     hide_code_editor = false,
     hide_error_display = false,
     custom_css_file = nil,
@@ -85,7 +86,7 @@ local function send_buffer_content()
   local content = table.concat(lines, "\n")
   local base64_content = base64.encode(content)
 
-  if base64_content ~= last_content and not is_processing_event then
+  if base64_content ~= last_content then
     last_content = base64_content
     send_message(MESSAGES.CONTENT .. base64_content)
   end
@@ -187,8 +188,9 @@ function M.setup(opts)
   -- Commands
   vim.api.nvim_create_user_command("StrudelLaunch", M.launch, {})
   vim.api.nvim_create_user_command("StrudelQuit", M.quit, {})
-  vim.api.nvim_create_user_command("StrudelPlayStop", M.play_stop, {})
+  vim.api.nvim_create_user_command("StrudelToggle", M.toggle, {})
   vim.api.nvim_create_user_command("StrudelUpdate", M.update, {})
+  vim.api.nvim_create_user_command("StrudelStop", M.stop, {})
   vim.api.nvim_create_user_command("StrudelSetBuffer", M.set_buffer, { nargs = "?" })
   vim.api.nvim_create_user_command("StrudelExecute", M.execute, {})
 end
@@ -273,15 +275,19 @@ function M.launch()
 end
 
 function M.quit()
-  send_message(MESSAGES.STOP)
+  send_message(MESSAGES.QUIT)
 end
 
-function M.play_stop()
-  send_message(MESSAGES.PLAY_STOP)
+function M.toggle()
+  send_message(MESSAGES.TOGGLE)
 end
 
 function M.update()
   send_message(MESSAGES.UPDATE)
+end
+
+function M.stop()
+  send_message(MESSAGES.STOP)
 end
 
 function M.set_buffer(opts)
@@ -306,7 +312,7 @@ function M.set_buffer(opts)
     group = STRUDEL_SYNC_AUTOCOMMAND,
     buffer = bufnr,
     callback = function()
-      if strudel_synced_bufnr then
+      if not is_processing_event and strudel_synced_bufnr then
         send_buffer_content()
       end
     end,
