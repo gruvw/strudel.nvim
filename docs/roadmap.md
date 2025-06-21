@@ -30,7 +30,7 @@
 - [X] Persist cursor location across content update in Neovim and in Strudel editor
 - [X] Strudel Stop message
 - [X] Fix current line jumping to first line in strudel editor when changing content (use partial document updates)
-- [ ] Two way sync cursor position between Neovim and Strudel editor
+- [X] Two way sync cursor position between Neovim and Strudel editor (behind config flag)
 - [ ] Don't depend on the `https://strudel.cc` website, host locally
 - [ ] LSP and auto completion with the strudel API
 - [ ] JS LSP integration

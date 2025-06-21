@@ -251,12 +251,23 @@ async function handleEvent(message) {
         const content = Buffer.from(base64Content, "base64").toString("utf8");
         await updateEditorContent(content);
     } else if (message.startsWith(MESSAGES.CURSOR)) {
-        // TODO: Continue cursor location message implementation
-        return;
-        // Handle cursor location message
+        // Expecting format: row:col (1-based row, 0-based col)
         const cursorStr = message.slice(MESSAGES.CURSOR.length);
-        const cursorPos = parseInt(cursorStr, 10);
-        await moveEditorCursor(cursorPos);
+        const [rowStr, colStr] = cursorStr.split(":");
+        const row = parseInt(rowStr, 10);
+        const col = parseInt(colStr, 10);
+        await page.evaluate(({ row, col }) => {
+            const view = window.strudelMirror.editor;
+            const lineCount = view.state.doc.lines;
+            const clampedRow = Math.max(1, Math.min(row, lineCount));
+            const lineInfo = view.state.doc.line(clampedRow);
+            const clampedCol = Math.max(0, Math.min(col, lineInfo.length));
+            const pos = Math.min(lineInfo.from + clampedCol, lineInfo.to);
+            view.dispatch({
+                selection: { anchor: pos },
+                scrollIntoView: true,
+            });
+        }, { row, col });
     }
 }
 
@@ -363,6 +374,29 @@ async function handleEvent(message) {
                 }
             }, 300);
         });
+
+        // Handle cursor position
+        await page.exposeFunction("sendEditorCursor", async () => {
+            const cursor = await page.evaluate(() => {
+                const view = window.strudelMirror.editor;
+                const pos = view.state.selection.main.head;
+                const lineInfo = view.state.doc.lineAt(pos);
+                const row = lineInfo.number; // 1-based
+                const col = pos - lineInfo.from; // 0-based
+                return `${row}:${col}`;
+            });
+            process.stdout.write(MESSAGES.CURSOR + cursor + "\n");
+        });
+        if (!userConfig.isHeadless) {
+            await page.evaluate((editorSelector, eventName) => {
+                const editor = document.querySelector(editorSelector);
+                // Listen for cursor changes
+                editor.addEventListener("keyup", window.sendEditorCursor);
+                editor.addEventListener("keydown", window.sendEditorCursor);
+                editor.addEventListener("mouseup", window.sendEditorCursor);
+                editor.addEventListener("mousedown", window.sendEditorCursor);
+            }, SELECTORS.EDITOR, EVENTS.CONTENT_CHANGED);
+        }
 
         // Signal that browser is ready
         process.stdout.write(MESSAGES.READY + "\n");

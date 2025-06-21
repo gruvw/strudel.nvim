@@ -15,7 +15,7 @@ local MESSAGES = {
 }
 
 local STRUDEL_SYNC_AUTOCOMMAND = "StrudelSync"
-local SUCCESSIVE_CMD_DELAY = 100
+local SUCCESSIVE_CMD_DELAY = 50
 
 -- State
 local strudel_job_id = nil
@@ -23,6 +23,7 @@ local last_content = nil
 local strudel_synced_bufnr = nil
 local strudel_ready = false
 local custom_css_b64 = nil
+local last_received_cursor = nil -- {row, col}
 
 -- Event queue for sequential message processing
 local event_queue = {}
@@ -39,6 +40,7 @@ local config = {
     custom_css_file = nil,
   },
   report_eval_errors = true,
+  sync_cursor = true,
   update_on_save = false,
   headless = false,
   browser_data_dir = nil,
@@ -53,7 +55,7 @@ local function send_message(message)
 end
 
 local function send_cursor_position()
-  if not strudel_job_id or not strudel_synced_bufnr or not strudel_ready then
+  if not strudel_job_id or not strudel_synced_bufnr or not strudel_ready or not config.sync_cursor then
     return
   end
   if not vim.api.nvim_buf_is_valid(strudel_synced_bufnr) then
@@ -61,17 +63,12 @@ local function send_cursor_position()
   end
 
   local pos = vim.api.nvim_win_get_cursor(0)
-  local line = pos[1]
+  local row = pos[1]
   local col = pos[2]
-  local lines = vim.api.nvim_buf_get_lines(0, 0, line, false)
-  local char_offset = 0
-
-  for i = 1, line - 1 do
-    char_offset = char_offset + #lines[i] + 1
+  if last_received_cursor and last_received_cursor[1] == row and last_received_cursor[2] == col then
+    return
   end
-  char_offset = char_offset + col
-
-  send_message(MESSAGES.CURSOR .. char_offset)
+  send_message(MESSAGES.CURSOR .. row .. ":" .. col)
 end
 
 local function send_buffer_content()
@@ -89,6 +86,9 @@ local function send_buffer_content()
   if base64_content ~= last_content then
     last_content = base64_content
     send_message(MESSAGES.CONTENT .. base64_content)
+    vim.defer_fn(function()
+      send_cursor_position()
+    end, SUCCESSIVE_CMD_DELAY)
   end
 end
 
@@ -103,7 +103,7 @@ local function set_buffer_content(bufnr, content)
       return
     end
 
-    -- save current window view (persist cursor location across content update)
+    -- Save current window view (persist cursor location across content update)
     local view = vim.fn.winsaveview()
     -- Update buffer content
     vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
@@ -127,6 +127,21 @@ local function handle_event(full_data)
     if strudel_synced_bufnr and vim.api.nvim_buf_is_valid(strudel_synced_bufnr) then
       local content = base64.decode(content_b64)
       set_buffer_content(strudel_synced_bufnr, content)
+    end
+  elseif full_data:match("^" .. MESSAGES.CURSOR) and config.sync_cursor then
+    local cursor_str = full_data:sub(#MESSAGES.CURSOR + 1)
+    local row, col = cursor_str:match("^(%d+):(%d+)$")
+    row = tonumber(row)
+    col = tonumber(col)
+    if row and col and strudel_synced_bufnr and vim.api.nvim_buf_is_valid(strudel_synced_bufnr) then
+      vim.schedule(function()
+        local line_count = vim.api.nvim_buf_line_count(strudel_synced_bufnr)
+        local clamped_row = math.max(1, math.min(row, line_count))
+        local line = vim.api.nvim_buf_get_lines(strudel_synced_bufnr, clamped_row - 1, clamped_row, false)[1] or ""
+        local clamped_col = math.max(0, math.min(col, #line))
+        last_received_cursor = { clamped_row, clamped_col }
+        vim.api.nvim_win_set_cursor(0, { clamped_row, clamped_col })
+      end)
     end
   elseif full_data:match("^" .. MESSAGES.EVAL_ERROR) then
     local error_b64 = full_data:sub(#MESSAGES.EVAL_ERROR + 1)
@@ -264,10 +279,11 @@ function M.launch()
       end
 
       -- reset state
+      strudel_ready = false
       strudel_job_id = nil
       last_content = nil
       strudel_synced_bufnr = nil
-      strudel_ready = false
+      last_received_cursor = nil
     end,
   })
 
@@ -319,13 +335,17 @@ function M.set_buffer(opts)
   })
 
   -- Set up autocommand to sync cursor position
-  vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
-    group = STRUDEL_SYNC_AUTOCOMMAND,
-    buffer = bufnr,
-    callback = function()
-      send_cursor_position()
-    end,
-  })
+  if config.sync_cursor then
+    vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
+      group = STRUDEL_SYNC_AUTOCOMMAND,
+      buffer = bufnr,
+      callback = function()
+        if not is_processing_event then
+          send_cursor_position()
+        end
+      end,
+    })
+  end
 
   -- Set up autocommand to update on save
   if config.update_on_save then
@@ -352,11 +372,11 @@ end
 
 -- Combo command to set the current buffer and trigger update
 function M.execute()
-    local ok = M.set_buffer()
-    if ok then
-      vim.defer_fn(function()
-        M.update()
-      end, SUCCESSIVE_CMD_DELAY)
+  local ok = M.set_buffer()
+  if ok then
+    vim.defer_fn(function()
+      M.update()
+    end, SUCCESSIVE_CMD_DELAY)
   end
 end
 

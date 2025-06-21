@@ -15,6 +15,7 @@ This plugin launches Strudel in a browser window and provides real-time two-way 
 - **Playback control** - Control Strudel's _Play/Stop_ and _Update_ functions directly from Neovim.
 - **Side by side workflow** - Maximized Strudel menu pannel and (optionally) hidden top bar for side by side Neovim-Strudel seamless workflow (effectively replacing the default Strudel editor by Neovim).
 - **File based** - Save your files as `*.str` and open them right away in Strudel through Neovim, anywhere on your file system (open and change files with your own file manager or fuzzy finder/picker, and allows using your regular version control system).
+- **Two-way cursor sync** - The cursor position is synchronized in real-time (by default) between Neovim and the Strudel editor. Move your cursor in either environment and it will update in the other, enabling seamless navigation and editing.
 - **Swap files** - Change the buffer that is synced to Strudel on the fly with the simple `:StrudelSetBuffer` command.
 - **File type support** - The plugin automatically sets the file type to `javascript` for `.str` files, providing proper syntax highlighting and language support.
 - **Hydra support** - As Strudel [integrates with Hydra](https://strudel.cc/learn/hydra/), you can also live code stunning visuals directly from Neovim. Check out the [Hydra only config options](#hydra-only-config-options) to only display the Hydra background (allows for easy screen projections during live performance for example).
@@ -97,6 +98,9 @@ require("strudel").setup({
   -- Only works if the playback was already started (doesn't start the playback on save)
   -- (optional, default: false)
   update_on_save = false,
+  -- Enable two-way cursor position sync between Neovim and Strudel editor.
+  -- (optional, default: true)
+  sync_cursor = true,
   -- Report evaluation errors from Strudel as Neovim notifications.
   -- (optional, default: true)
   report_eval_errors = true,
@@ -175,14 +179,14 @@ The plugin consists of two main components:
 
 The Lua and JavaScript components communicate via stdin/stdout using a simple message protocol:
 
-- `STRUDEL_CONTENT:<base64-content>` - Sync buffer content.
+- `STRUDEL_CONTENT:<base64-content>` - Sync buffer content (sent both ways).
 - `STRUDEL_QUIT` - Quit the Strudel session and close the browser.
 - `STRUDEL_TOGGLE` - Toggle playback (play/stop) in Strudel.
-- `STRUDEL_UPDATE` - Trigger the _Update_ button (evaluate code).
-- `STRUDEL_STOP` - Stop playback in Strudel (calls `strudelMirror.stop()`).
-- `STRUDEL_REFRESH` - Trigger the code evaluation only when already playing (used for update on save).
-- `STRUDEL_READY` - Browser is ready (initialization).
-- `STRUDEL_CURSOR:<offset>` - Update the cursor position (character offset).
+- `STRUDEL_UPDATE` - Trigger the _Update_ button (evaluate code). Starts playback if not already started.
+- `STRUDEL_STOP` - Stop playback in Strudel.
+- `STRUDEL_REFRESH` - Trigger code evaluation only if already playing (used for update on save).
+- `STRUDEL_READY` - Browser is ready (initialization complete).
+- `STRUDEL_CURSOR:<row>:<col>` - Update the cursor position (row and column, 1-based).
 - `STRUDEL_EVAL_ERROR:<base64-error>` - Sent from Strudel to Neovim to report an evaluation error.
 
 ### Synchronization
