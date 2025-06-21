@@ -137,33 +137,48 @@ async function updateEditorContent(content) {
     if (!page) return;
 
     try {
-        const prevLocation = await page.evaluate(async (content) => {
-            // Persist cursor location across content update
+        await page.evaluate((newContent) => {
+            // Can't simply set the whole content because it breaks inline annimations
+            // https://codeberg.org/uzu/strudel/issues/1393
             const view = window.strudelMirror.editor;
-            const pos = view.state.selection.main.head;
-            const line = view.state.doc.lineAt(pos);
-            const prevLocation = {
-                line: line.number,
-                column: pos - line.from
+            const oldContent = view.state.doc.toString();
+
+            // Find the first position where the content differs
+            let start = 0;
+            while (
+                start < oldContent.length &&
+                start < newContent.length &&
+                oldContent[start] === newContent[start]
+            ) {
+                start++;
             }
 
-            window.strudelMirror.editor.contentDOM.textContent = content;
+            // Find the last position where the content differs
+            let endOld = oldContent.length - 1;
+            let endNew = newContent.length - 1;
+            while (
+                endOld >= start &&
+                endNew >= start &&
+                oldContent[endOld] === newContent[endNew]
+            ) {
+                endOld--;
+                endNew--;
+            }
+
+            // If there is a change, apply it
+            if (start <= endOld || start <= endNew) {
+                view.dispatch({
+                    changes: {
+                        from: start,
+                        to: endOld + 1,
+                        insert: newContent.slice(start, endNew + 1)
+                    }
+                });
+            }
+
+            // Emulate interaction for audio playback
             window.strudelMirror.root.click();
-
-            return prevLocation;
         }, content);
-        // Restore cursor location
-        await page.evaluate(({ line, column }) => {
-            const view = window.strudelMirror.editor;
-            const lineCount = view.state.doc.lines;
-            const clampedLine = Math.min(line, lineCount);
-            const lineInfo = view.state.doc.line(clampedLine);
-            const pos = Math.min(lineInfo.from + column, lineInfo.to);
-
-            view.dispatch({
-                selection: { anchor: pos },
-            });
-        }, prevLocation);
     } catch (error) {
         console.error("Error updating editor:", error);
     }

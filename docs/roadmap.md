@@ -28,8 +28,8 @@
 - [X] Fix fast typing messes with input in Neovim issue (use an event queue to sequentially process messages, at both ends)
 - [X] Fix all weird messaging problems (wrong content, weird characters, looping, reactive resend, ...)
 - [X] Persist cursor location across content update in Neovim and in Strudel editor
-- [ ] Strudel Stop message
-- [ ] Fix current line jumping to first line in strudel editor when changing content
+- [X] Strudel Stop message
+- [X] Fix current line jumping to first line in strudel editor when changing content (use partial document updates)
 - [ ] Two way sync cursor position between Neovim and Strudel editor
 - [ ] Don't depend on the `https://strudel.cc` website, host locally
 - [ ] LSP and auto completion with the strudel API
