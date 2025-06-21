@@ -195,6 +195,27 @@ async function moveEditorCursor(position) {
     }, position);
 }
 
+async function handleCursorMessage(message) {
+    // Expecting format: row:col (1-based row, 0-based col)
+    const cursorStr = message.slice(MESSAGES.CURSOR.length);
+    const [rowStr, colStr] = cursorStr.split(":");
+    const row = parseInt(rowStr);
+    const col = parseInt(colStr);
+    
+    await page.evaluate(({ row, col }) => {
+        const view = window.strudelMirror.editor;
+        const lineCount = view.state.doc.lines;
+        const clampedRow = Math.max(1, Math.min(row, lineCount));
+        const lineInfo = view.state.doc.line(clampedRow);
+        const clampedCol = Math.max(0, Math.min(col, lineInfo.length));
+        const pos = Math.min(lineInfo.from + clampedCol, lineInfo.to);
+        view.dispatch({
+            selection: { anchor: pos },
+            scrollIntoView: true,
+        });
+    }, { row, col });
+}
+
 // Handle messages from Neovim
 process.stdin.on("data", (data) => {
     const message = data.toString().trim();
@@ -251,23 +272,7 @@ async function handleEvent(message) {
         const content = Buffer.from(base64Content, "base64").toString("utf8");
         await updateEditorContent(content);
     } else if (message.startsWith(MESSAGES.CURSOR)) {
-        // Expecting format: row:col (1-based row, 0-based col)
-        const cursorStr = message.slice(MESSAGES.CURSOR.length);
-        const [rowStr, colStr] = cursorStr.split(":");
-        const row = parseInt(rowStr, 10);
-        const col = parseInt(colStr, 10);
-        await page.evaluate(({ row, col }) => {
-            const view = window.strudelMirror.editor;
-            const lineCount = view.state.doc.lines;
-            const clampedRow = Math.max(1, Math.min(row, lineCount));
-            const lineInfo = view.state.doc.line(clampedRow);
-            const clampedCol = Math.max(0, Math.min(col, lineInfo.length));
-            const pos = Math.min(lineInfo.from + clampedCol, lineInfo.to);
-            view.dispatch({
-                selection: { anchor: pos },
-                scrollIntoView: true,
-            });
-        }, { row, col });
+        await handleCursorMessage(message);
     }
 }
 
@@ -388,14 +393,14 @@ async function handleEvent(message) {
             process.stdout.write(MESSAGES.CURSOR + cursor + "\n");
         });
         if (!userConfig.isHeadless) {
-            await page.evaluate((editorSelector, eventName) => {
+            await page.evaluate((editorSelector) => {
                 const editor = document.querySelector(editorSelector);
                 // Listen for cursor changes
                 editor.addEventListener("keyup", window.sendEditorCursor);
                 editor.addEventListener("keydown", window.sendEditorCursor);
                 editor.addEventListener("mouseup", window.sendEditorCursor);
                 editor.addEventListener("mousedown", window.sendEditorCursor);
-            }, SELECTORS.EDITOR, EVENTS.CONTENT_CHANGED);
+            }, SELECTORS.EDITOR);
         }
 
         // Signal that browser is ready

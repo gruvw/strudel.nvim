@@ -63,8 +63,7 @@ local function send_cursor_position()
   end
 
   local pos = vim.api.nvim_win_get_cursor(0)
-  local row = pos[1]
-  local col = pos[2]
+  local row, col = pos[1], pos[2]
   if last_received_cursor and last_received_cursor[1] == row and last_received_cursor[2] == col then
     return
   end
@@ -131,8 +130,7 @@ local function handle_event(full_data)
   elseif full_data:match("^" .. MESSAGES.CURSOR) and config.sync_cursor then
     local cursor_str = full_data:sub(#MESSAGES.CURSOR + 1)
     local row, col = cursor_str:match("^(%d+):(%d+)$")
-    row = tonumber(row)
-    col = tonumber(col)
+    row, col = tonumber(row), tonumber(col)
     if row and col and strudel_synced_bufnr and vim.api.nvim_buf_is_valid(strudel_synced_bufnr) then
       vim.schedule(function()
         local line_count = vim.api.nvim_buf_line_count(strudel_synced_bufnr)
@@ -334,7 +332,7 @@ function M.set_buffer(opts)
     end,
   })
 
-  -- Set up autocommand to sync cursor position
+  -- Set up autocommand to sync cursor position if enabled
   if config.sync_cursor then
     vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
       group = STRUDEL_SYNC_AUTOCOMMAND,
