@@ -82,6 +82,7 @@ const CLI_ARGS = {
     CUSTOM_CSS_B64: "--custom-css-b64=",
     HEADLESS: "--headless",
     USER_DATA_DIR: "--user-data-dir=",
+    BROWSER_EXE_PATH: "--browser-exe-path=",
 };
 
 const userConfig = {
@@ -93,6 +94,7 @@ const userConfig = {
     customCss: null,
     isHeadless: false,
     userDataDir: null,
+    browserExePath: null,
 };
 
 // Process program arguments at launch
@@ -118,6 +120,8 @@ for (const arg of process.argv) {
         userConfig.isHeadless = true;
     } else if (arg.startsWith(CLI_ARGS.USER_DATA_DIR)) {
         userConfig.userDataDir = arg.replace(CLI_ARGS.USER_DATA_DIR, "");
+    } else if (arg.startsWith(CLI_ARGS.BROWSER_EXE_PATH)) {
+        userConfig.browserExePath = path.join(arg.replace(CLI_ARGS.BROWSER_EXE_PATH, ""));
     }
 }
 if (!userConfig.userDataDir) {
@@ -288,6 +292,7 @@ async function handleEvent(message) {
                 `--app=${STRUDEL_URL}`,
                 "--autoplay-policy=no-user-gesture-required",
             ],
+            ...(userConfig.browserExePath && { executablePath: userConfig.browserExePath }),
         });
 
         // Wait for the page to be ready (found the editor)
