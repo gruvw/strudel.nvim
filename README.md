@@ -115,7 +115,7 @@ require("strudel").setup({
   -- (optional, default: `~/.cache/strudel-nvim/`)
   browser_data_dir = "~/.cache/strudel-nvim/",
   -- Absolute path to a (chromium based) browser executable of choice
-  -- (optional, default: set by Puppeteer)
+  -- (optional, default: nil)
   browser_exe_path = "/absolute/path/to/browser/executable",
 })
 ```
