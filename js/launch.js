@@ -283,7 +283,10 @@ async function handleEvent(message) {
             headless: userConfig.isHeadless,
             defaultViewport: null,
             userDataDir: userConfig.userDataDir,
-            ignoreDefaultArgs: ["--mute-audio"],
+            ignoreDefaultArgs: [
+                "--mute-audio",
+                "--enable-automation",
+            ],
             args: [
                 `--app=${STRUDEL_URL}`,
                 "--autoplay-policy=no-user-gesture-required",
