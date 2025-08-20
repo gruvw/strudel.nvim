@@ -48,7 +48,6 @@ With [lazy.nvim](https://github.com/folke/lazy.nvim)
 ```lua
 {
   "gruvw/strudel.nvim",
-  cmd = "StrudelLaunch",
   build = "npm install",
   config = function()
     require("strudel").setup()
