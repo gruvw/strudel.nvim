@@ -58,6 +58,8 @@ With [lazy.nvim](https://github.com/folke/lazy.nvim)
 
 Note - You have to call the `.setup()` function before using the plugin.
 
+Note - Lazy loading the plugin may break the _File type support_ feature. 
+
 ## Usage
 
 ### Basic Workflow
