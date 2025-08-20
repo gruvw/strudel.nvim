@@ -201,7 +201,7 @@ async function handleCursorMessage(message) {
     const [rowStr, colStr] = cursorStr.split(":");
     const row = parseInt(rowStr);
     const col = parseInt(colStr);
-    
+
     await page.evaluate(({ row, col }) => {
         const view = window.strudelMirror.editor;
         const lineCount = view.state.doc.lines;
@@ -293,7 +293,7 @@ async function handleEvent(message) {
         // Wait for the page to be ready (found the editor)
         const pages = await browser.pages();
         page = pages[0];
-        await page.waitForSelector(SELECTORS.EDITOR, { timeout: 10000 });
+        await page.waitForSelector(SELECTORS.EDITOR, { timeout: 30000 });
 
         // Listen for browser disconnect or page close
         browser.on("disconnected", () => {
