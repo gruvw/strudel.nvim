@@ -115,6 +115,9 @@ require("strudel").setup({
   -- Path to the directory where Strudel browser user data (cookies, sessions, etc.) is stored
   -- (optional, default: `~/.cache/strudel-nvim/`)
   browser_data_dir = "~/.cache/strudel-nvim/",
+  -- Absolute path to a (chromium based) browser executable of choice
+  -- (optional, default: nil)
+  browser_exec_path = "/absolute/path/to/browser/executable",
 })
 ```
 
