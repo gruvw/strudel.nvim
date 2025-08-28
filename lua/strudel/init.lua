@@ -44,6 +44,7 @@ local config = {
   update_on_save = false,
   headless = false,
   browser_data_dir = nil,
+  browser_exec_path = nil,
 }
 
 local function send_message(message)
@@ -241,6 +242,9 @@ function M.launch()
   end
   if config.browser_data_dir then
     cmd = cmd .. " --user-data-dir=" .. vim.fn.shellescape(config.browser_data_dir)
+  end
+  if config.browser_exec_path then
+    cmd = cmd .. " --browser-exec-path=" .. vim.fn.shellescape(config.browser_exec_path)
   end
 
   -- Run the js script
