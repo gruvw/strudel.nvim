@@ -202,6 +202,31 @@ The plugin implements intelligent two-way synchronization:
 
 Note on Loop Prevention - Base64 content comparison prevents infinite update loops (and new lines issues).
 
+## Auto-complete
+
+Requires typescript-language-server eg through [lspconfig](https://github.com/neovim/nvim-lspconfig/blob/master/lsp/ts_ls.lua).
+
+To get LSP suggestions you need to generate the `strudel-core.d.ts` file by running `npm run jsdoc-to-dts` in [this PR](https://codeberg.org/uzu/strudel/pulls/1542) on the strudel repo.
+
+Set up your project folder as follows:
+
+```
+📁 strudel_tracks
+    - strudel-core.d.ts  # this is the generated file
+    - tsconfig.json
+    📁 tracks
+        - track1.strudel.js  # the file in which you get autocomplete
+```
+tsconfig.json:
+```json
+{
+    "compilerOptions": {
+        "checkJs": true,
+    },
+    "include": ["./strudel-core.d.ts", "tracks/*.js"]
+}
+```
+
 ## Troubleshooting
 
 - Browser doesn't open - Ensure Node.js and npm are properly installed.
