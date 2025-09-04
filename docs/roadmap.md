@@ -33,5 +33,5 @@
 - [X] Two way sync cursor position between Neovim and Strudel editor (behind config flag)
 - [ ] Don't depend on the `https://strudel.cc` website, host locally
 - [ ] LSP and auto completion with the strudel API
-- [ ] JS LSP integration
+- [X] JS LSP integration
 - [ ] Code formatter
