@@ -221,7 +221,7 @@ tsconfig.json:
 ```json
 {
     "compilerOptions": {
-        "checkJs": true,
+        "allowJs": true,
     },
     "include": ["./strudel-core.d.ts", "tracks/*.js"]
 }
