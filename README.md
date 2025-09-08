@@ -14,10 +14,10 @@ This plugin launches Strudel in a browser window and provides real-time two-way 
 - **Real-time sync** - Two-way synchronization between Neovim buffer and Strudel editor.
 - **Playback control** - Control Strudel's _Play/Stop_ and _Update_ functions directly from Neovim.
 - **Side by side workflow** - Maximized Strudel menu pannel and (optionally) hidden top bar for side by side Neovim-Strudel seamless workflow (effectively replacing the default Strudel editor by Neovim).
-- **File based** - Save your files as `*.str` and open them right away in Strudel through Neovim, anywhere on your file system (open and change files with your own file manager or fuzzy finder/picker, and allows using your regular version control system).
+- **File based** - Save your files as `*.str` (or `.std`) and open them right away in Strudel through Neovim, anywhere on your file system (open and change files with your own file manager or fuzzy finder/picker, and allows using your regular version control system).
 - **Two-way cursor sync** - The cursor position is synchronized in real-time (by default) between Neovim and the Strudel editor. Move your cursor in either environment and it will update in the other, enabling seamless navigation and editing.
 - **Swap files** - Change the buffer that is synced to Strudel on the fly with the simple `:StrudelSetBuffer` command.
-- **File type support** - The plugin automatically sets the file type to `javascript` for `.str` files, providing proper syntax highlighting and language support.
+- **File type support** - The plugin automatically sets the file type to `javascript` for `.str` (or `.std`) files, providing proper syntax highlighting and language support.
 - **Hydra support** - As Strudel [integrates with Hydra](https://strudel.cc/learn/hydra/), you can also live code stunning visuals directly from Neovim. Check out the [Hydra only config options](#hydra-only-config-options) to only display the Hydra background (allows for easy screen projections during live performance for example).
 - **Strudel error reporting** - Reports Strudel evaluation errors back into Neovim (by default).
 - **Custom CSS injection** - Optionally inject your own CSS into the Strudel web editor by specifying a `custom_css_file` in the setup options. Allows you to fully customize the Strudel UI from your Neovim config.

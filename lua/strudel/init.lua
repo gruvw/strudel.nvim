@@ -191,9 +191,9 @@ function M.setup(opts)
   -- Create autocmd group
   vim.api.nvim_create_augroup(STRUDEL_SYNC_AUTOCOMMAND, { clear = true })
 
-  -- Set file type for .str files to JavaScript
+  -- Set file type for .str, .std files to JavaScript
   vim.api.nvim_create_autocmd({ "BufRead", "BufNewFile" }, {
-    pattern = "*.str",
+    pattern = { "*.str", "*.std" },
     callback = function()
       vim.bo.filetype = "javascript"
     end,
