@@ -206,6 +206,7 @@ Note on Loop Prevention - Base64 content comparison prevents infinite update loo
 
 - Browser doesn't open - Ensure Node.js and npm are properly installed.
 - Permission errors - Ensure write permissions to the cache directory.
+- Puppeteer error (`Cannot find module 'puppeteer'`) - see https://github.com/gruvw/strudel.nvim/issues/9.
 - Whole buffer content gets highlighted - Probably caused by the [highlight-undo.nvim](https://github.com/tzachar/highlight-undo.nvim) plugin. Use the following config:
 ```lua
 require("highlight-undo").setup({
