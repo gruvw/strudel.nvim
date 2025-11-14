@@ -57,7 +57,7 @@ With [lazy.nvim](https://github.com/folke/lazy.nvim)
 
 **Note:** You have to call the `.setup()` function before using the plugin.
 
-**Note:** Lazy loading the plugin may break the _File type support_ feature (see https://github.com/gruvw/strudel.nvim/issues/5). 
+**Note:** Lazy loading the plugin may break the _File type support_ feature (see https://github.com/gruvw/strudel.nvim/issues/5).
 
 ## Usage
 
@@ -70,8 +70,8 @@ With [lazy.nvim](https://github.com/folke/lazy.nvim)
 
 ### Configuration
 
-The plugin works out of the box with sensible defaults.  
-The browser data is stored in `~/.cache/strudel-nvim/` (by default) for session persistence.
+The plugin works out of the box with sensible defaults.
+The browser data is stored in `$HOME/.cache/strudel-nvim/` (by default) for session persistence.
 
 You can customize the plugin behavior by passing options to the setup function:
 
@@ -113,8 +113,8 @@ require("strudel").setup({
   -- (optional, default: false)
   headless = false,
   -- Path to the directory where Strudel browser user data (cookies, sessions, etc.) is stored
-  -- (optional, default: `~/.cache/strudel-nvim/`)
-  browser_data_dir = "~/.cache/strudel-nvim/",
+  -- (optional, default: `$HOME/.cache/strudel-nvim/`)
+  browser_data_dir = vim.env.HOME .. "/.cache/strudel-nvim/",
   -- Absolute path to a (chromium based) browser executable of choice
   -- (optional, default: nil)
   browser_exec_path = "/absolute/path/to/browser/executable",
