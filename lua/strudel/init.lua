@@ -19,6 +19,9 @@ local SUCCESSIVE_CMD_DELAY = 50
 
 -- State
 local strudel_job_id = nil
+function M.is_running()
+  return not (not strudel_job_id)
+end
 local last_content = nil
 local strudel_synced_bufnr = nil
 local strudel_ready = false
