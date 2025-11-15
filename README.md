@@ -142,7 +142,9 @@ require("strudel").setup({
   <img width="800" src="./docs/images/demo_hydra.png"><br>
 </p>
 
-### Commands
+### Commands & API
+
+**Note:** All Lua functions are available via `local strudel = require("strudel")` after setup.
 
 | Command              | Lua Function                | Description                                                      |
 |----------------------|----------------------------|------------------------------------------------------------------|
@@ -154,7 +156,9 @@ require("strudel").setup({
 | `:StrudelSetBuffer`  | `strudel.set_buffer()`     | Change the buffer that is synced to Strudel (optionally by providing a buffer number, current buffer otherwise). |
 | `:StrudelExecute`  | `strudel.execute()`     | Combo command: set current buffer and trigger _Update_. |
 
-**Note:** All Lua functions are available via `local strudel = require("strudel")` after setup.
+| Lua Function | Description |
+|-|-|
+| `strudel.is_launched()` | Returns `true` if the Strudel browser session is launched, `false` otherwise. |
 
 ### Keymaps
 
