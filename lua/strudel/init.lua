@@ -292,6 +292,10 @@ function M.launch()
   M.set_buffer()
 end
 
+function M.is_launched()
+  return strudel_job_id ~= nil
+end
+
 function M.quit()
   send_message(MESSAGES.QUIT)
 end
