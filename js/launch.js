@@ -128,6 +128,20 @@ if (!userConfig.userDataDir) {
     userConfig.userDataDir = path.join(os.homedir(), ".cache", "strudel-nvim");
 }
 
+// Returns path with expansion of "~" or "~/" to the user's home directory
+function expandTilde(p) {
+    if (!p) return p;
+    if (p === "~") return os.homedir();
+    if (p.startsWith("~/")) {
+        return path.join(os.homedir(), p.slice(2));
+    }
+    return p;
+}
+
+// Apply tilde home expansion
+userConfig.userDataDir = expandTilde(userConfig.userDataDir);
+userConfig.browserExecPath = expandTilde(userConfig.browserExecPath);
+
 // State
 let page = null;
 let lastContent = null;
