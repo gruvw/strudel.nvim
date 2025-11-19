@@ -24,7 +24,7 @@ This plugin launches Strudel in a browser window and provides real-time two-way 
 - **Auto update** - Optionally trigger Strudel Update when saving the buffer content.
 - **Customizable** - Check out the [configuration options](#configuration) to customize your experience and user-interface.
 - **Headless mode** - Optionally launch Strudel without opening the Strudel browser window for a pure Neovim live coding experience.
-- **Session persistence** - Remembers browser state across sessions.
+- **Session persistence & offline** - Remembers browser state across sessions, which also means you can use it [offline](https://strudel.cc/learn/pwa/).
 
 It uses [Puppeteer](https://github.com/puppeteer/puppeteer) to control a real browser instance allowing you to write Strudel code from Neovim (your favorite text editor) with all your regular config and plugins.
 
