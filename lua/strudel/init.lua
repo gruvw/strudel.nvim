@@ -119,7 +119,9 @@ local function handle_event(full_data)
     if strudel_synced_bufnr then
       send_buffer_content()
       if config.start_on_launch then
-        M.update()
+        vim.defer_fn(function()
+          M.update()
+        end, SUCCESSIVE_CMD_DELAY*2)
       end
     end
   elseif full_data:match("^" .. MESSAGES.CONTENT) then
