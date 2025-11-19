@@ -31,6 +31,7 @@
 - [X] Strudel Stop message
 - [X] Fix current line jumping to first line in strudel editor when changing content (use partial document updates)
 - [X] Two way sync cursor position between Neovim and Strudel editor (behind config flag)
+- [X] Start music playback on launch (configurable, opt out)
 - [ ] Don't depend on the `https://strudel.cc` website, host locally
 - [ ] LSP and auto completion with the strudel API
 - [ ] JS LSP integration

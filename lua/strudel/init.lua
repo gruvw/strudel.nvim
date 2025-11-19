@@ -41,6 +41,7 @@ local config = {
   },
   report_eval_errors = true,
   sync_cursor = true,
+  start_on_launch = true,
   update_on_save = false,
   headless = false,
   browser_data_dir = nil,
@@ -117,6 +118,9 @@ local function handle_event(full_data)
     strudel_ready = true
     if strudel_synced_bufnr then
       send_buffer_content()
+      if config.start_on_launch then
+        M.update()
+      end
     end
   elseif full_data:match("^" .. MESSAGES.CONTENT) then
     local content_b64 = full_data:sub(#MESSAGES.CONTENT + 1)

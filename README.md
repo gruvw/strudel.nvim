@@ -13,7 +13,7 @@ This plugin launches Strudel in a browser window and provides real-time two-way 
 
 - **Real-time sync** - Two-way synchronization between Neovim buffer and Strudel editor.
 - **Playback control** - Control Strudel's _Play/Stop_ and _Update_ functions directly from Neovim.
-- **Side by side workflow** - Maximized Strudel menu pannel and (optionally) hidden top bar for side by side Neovim-Strudel seamless workflow (effectively replacing the default Strudel editor by Neovim).
+- **Side by side workflow** - Maximized Strudel menu panel and (optionally) hidden top bar for side by side Neovim-Strudel seamless workflow (effectively replacing the default Strudel editor by Neovim).
 - **File based** - Save your files as `*.str` (or `.std`) and open them right away in Strudel through Neovim, anywhere on your file system (open and change files with your own file manager or fuzzy finder/picker, and allows using your regular version control system).
 - **Two-way cursor sync** - The cursor position is synchronized in real-time (by default) between Neovim and the Strudel editor. Move your cursor in either environment and it will update in the other, enabling seamless navigation and editing.
 - **Swap files** - Change the buffer that is synced to Strudel on the fly with the simple `:StrudelSetBuffer` command.
@@ -95,18 +95,21 @@ require("strudel").setup({
     -- (optional, default: false)
     hide_error_display = false,
   },
+  -- Automatically start playback when launching Strudel
+  -- (optional, default: true)
+  start_on_launch = true,
   -- Set to `true` to automatically trigger the code evaluation after saving the buffer content
   -- Only works if the playback was already started (doesn't start the playback on save)
   -- (optional, default: false)
   update_on_save = false,
-  -- Enable two-way cursor position sync between Neovim and Strudel editor.
+  -- Enable two-way cursor position sync between Neovim and Strudel editor
   -- (optional, default: true)
   sync_cursor = true,
-  -- Report evaluation errors from Strudel as Neovim notifications.
+  -- Report evaluation errors from Strudel as Neovim notifications
   -- (optional, default: true)
   report_eval_errors = true,
-  -- Path to a custom CSS file to style the Strudel web editor (base64-encoded and injected at launch).
-  -- This allows you to override or extend the default Strudel UI appearance.
+  -- Path to a custom CSS file to style the Strudel web editor (base64-encoded and injected at launch)
+  -- This allows you to override or extend the default Strudel UI appearance
   -- (optional, default: nil)
   custom_css_file = "/path/to/your/custom.css",
   -- Headless mode: set to `true` to run the browser without launching a window
@@ -117,7 +120,7 @@ require("strudel").setup({
   browser_data_dir = "~/.cache/strudel-nvim/",
   -- Path to a (chromium-based) browser executable of choice
   -- (optional, default: nil)
-  browser_exec_path = "/absolute/path/to/browser/executable",
+  browser_exec_path = "/path/to/browser/executable",
 })
 ```
 
