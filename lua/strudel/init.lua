@@ -388,7 +388,7 @@ function M.execute()
   if ok then
     vim.defer_fn(function()
       M.update()
-    end, SUCCESSIVE_CMD_DELAY)
+    end, SUCCESSIVE_CMD_DELAY*2)
   end
 end
 
