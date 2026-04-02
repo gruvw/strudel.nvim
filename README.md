@@ -121,6 +121,8 @@ require("strudel").setup({
   -- Path to a (chromium-based) browser executable of choice
   -- (optional, default: nil)
   browser_exec_path = "/path/to/browser/executable",
+  -- Custom base URL for strudel, useful if you have a custom build of strudel or you want to use https://warm.strudel.cc
+  strudel_url = "https://strudel.cc"
 })
 ```
 
