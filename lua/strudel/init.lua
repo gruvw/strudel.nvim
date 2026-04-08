@@ -46,6 +46,7 @@ local config = {
   headless = false,
   browser_data_dir = nil,
   browser_exec_path = nil,
+  strudel_url = nil,
 }
 
 local function send_message(message)
@@ -57,7 +58,12 @@ local function send_message(message)
 end
 
 local function send_cursor_position()
-  if not strudel_job_id or not strudel_synced_bufnr or not strudel_ready or not config.sync_cursor then
+  if
+    not strudel_job_id
+    or not strudel_synced_bufnr
+    or not strudel_ready
+    or not config.sync_cursor
+  then
     return
   end
   if not vim.api.nvim_buf_is_valid(strudel_synced_bufnr) then
@@ -121,7 +127,7 @@ local function handle_event(full_data)
       if config.start_on_launch then
         vim.defer_fn(function()
           M.update()
-        end, SUCCESSIVE_CMD_DELAY*2)
+        end, SUCCESSIVE_CMD_DELAY * 2)
       end
     end
   elseif full_data:match("^" .. MESSAGES.CONTENT) then
@@ -142,7 +148,12 @@ local function handle_event(full_data)
       vim.schedule(function()
         local line_count = vim.api.nvim_buf_line_count(strudel_synced_bufnr)
         local clamped_row = math.max(1, math.min(row, line_count))
-        local line = vim.api.nvim_buf_get_lines(strudel_synced_bufnr, clamped_row - 1, clamped_row, false)[1] or ""
+        local line = vim.api.nvim_buf_get_lines(
+          strudel_synced_bufnr,
+          clamped_row - 1,
+          clamped_row,
+          false
+        )[1] or ""
         local clamped_col = math.max(0, math.min(col, #line))
         last_received_cursor = { clamped_row, clamped_col }
         vim.api.nvim_win_set_cursor(0, { clamped_row, clamped_col })
@@ -251,6 +262,9 @@ function M.launch()
   end
   if config.browser_exec_path then
     cmd = cmd .. " --browser-exec-path=" .. vim.fn.shellescape(config.browser_exec_path)
+  end
+  if config.strudel_url then
+    cmd = cmd .. " --strudel-url=" .. vim.fn.shellescape(config.strudel_url)
   end
 
   -- Run the js script
@@ -388,7 +402,7 @@ function M.execute()
   if ok then
     vim.defer_fn(function()
       M.update()
-    end, SUCCESSIVE_CMD_DELAY*2)
+    end, SUCCESSIVE_CMD_DELAY * 2)
   end
 end
 

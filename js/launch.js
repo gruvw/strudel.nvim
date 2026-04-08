@@ -83,6 +83,7 @@ const CLI_ARGS = {
     HEADLESS: "--headless",
     USER_DATA_DIR: "--user-data-dir=",
     BROWSER_EXEC_PATH: "--browser-exec-path=",
+    STRUDEL_URL: "--strudel-url=",
 };
 
 const userConfig = {
@@ -95,6 +96,7 @@ const userConfig = {
     isHeadless: false,
     userDataDir: null,
     browserExecPath: null,
+    strudelUrl: STRUDEL_URL,
 };
 
 // Process program arguments at launch
@@ -122,6 +124,8 @@ for (const arg of process.argv) {
         userConfig.userDataDir = arg.replace(CLI_ARGS.USER_DATA_DIR, "");
     } else if (arg.startsWith(CLI_ARGS.BROWSER_EXEC_PATH)) {
         userConfig.browserExecPath = path.join(arg.replace(CLI_ARGS.BROWSER_EXEC_PATH, ""));
+    } else if (arg.startsWith(CLI_ARGS.STRUDEL_URL)) {
+        userConfig.strudelUrl = path.join(arg.replace(CLI_ARGS.STRUDEL_URL, ""))
     }
 }
 if (!userConfig.userDataDir) {
@@ -305,7 +309,7 @@ async function handleEvent(message) {
                 "--enable-automation",
             ],
             args: [
-                `--app=${STRUDEL_URL}`,
+                `--app=${userConfig.strudelUrl}`,
                 "--autoplay-policy=no-user-gesture-required",
             ],
             ...(userConfig.browserExecPath && { executablePath: userConfig.browserExecPath }),
