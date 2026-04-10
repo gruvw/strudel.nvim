@@ -122,8 +122,8 @@ require("strudel").setup({
   -- (optional, default: nil)
   browser_exec_path = "/path/to/browser/executable",
   -- Custom URL for Strudel
-  -- (optional, default: "https://strudel.cc")
-  strudel_url = "https://strudel.cc",
+  -- (optional, default: "https://cold.strudel.cc/")
+  strudel_url = "https://cold.strudel.cc/",
 })
 ```
 

@@ -2,7 +2,7 @@ const puppeteer = require("puppeteer");
 const path = require("path");
 const os = require("os");
 
-const STRUDEL_URL = "https://strudel.cc/";
+const STRUDEL_URL = "https://cold.strudel.cc/";
 
 const MESSAGES = {
     CONTENT: "STRUDEL_CONTENT:",
