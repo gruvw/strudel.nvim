@@ -34,5 +34,5 @@
 - [X] Start music playback on launch (configurable, opt out)
 - [ ] Don't depend on the `https://strudel.cc` website, host locally
 - [ ] LSP and auto completion with the strudel API
-- [ ] JS LSP integration
+- [X] JS LSP integration
 - [ ] Code formatter
