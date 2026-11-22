@@ -210,7 +210,7 @@ function M.setup(opts)
 
   -- Set file type for .str, .std files to JavaScript
   vim.api.nvim_create_autocmd({ "BufRead", "BufNewFile" }, {
-    pattern = { "*.str", "*.std" },
+    pattern = { "*.str", "*.std", "*.strudel", "*.js.strudel" },
     callback = function()
       vim.bo.filetype = "javascript"
     end,
